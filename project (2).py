@@ -2,13 +2,39 @@ import pygame
 import copy
 import random
 
+global active_file, running, files
+
+
+class Menu:
+    def __init__(self):
+        self.menu_im = pygame.image.load('Главный экран.jpg')
+        self.width, self.height = 1200, 675
+
+    def render(self):
+        screen.blit(self.menu_im, (0, 0))
+
+    def on_click(self, cell_coords):
+        global active_file, running, files
+        if 890 <= cell_coords[0] <= 1074 and 455 <= cell_coords[1] <= 495:
+            active_file = files[0]
+        elif 890 <= cell_coords[0] <= 1074 and 520 <= cell_coords[1] <= 560:
+            # Авторы
+            print('Avtorov poka net')
+        elif 890 <= cell_coords[0] <= 1074 and 580 <= cell_coords[1] <= 620:
+            global running
+            running = False
+
+    def get_click(self, mouse_pos):
+        self.on_click(mouse_pos)
+
 
 class MapPeredvizenie:
-    def __init__(self, width, height, char, map=[[0] * 9 for _ in range(5)]):
+    def __init__(self, width, height, char, map=0):
+        self.width, self.height = 1200, 675
         self.char = char
         self.board = map
         self.risotto_coords = (1, 1)
-        self.back = pygame.image.load('ECc2dTJXoAIjo7K.jpg') # как подрубать изображения:
+        self.back = pygame.image.load('ECc2dTJXoAIjo7K.jpg')  # как подрубать изображения:
         # self.название = pygame.image.load('название изображения')
         # чтобы использовать(использую в render()): screen.blit(self.название,
         #                                                      (координата середины фото по х,
@@ -24,7 +50,7 @@ class MapPeredvizenie:
         self.character = pygame.image.load('char.png')
         self.inventorybtn = pygame.image.load('inventorybtn.png')
         self.treasure_open = pygame.image.load('treasure_open.jpg')
-        self.hardbass1 = pygame.image.load('hardbass1.png') # эти два изображения не используются,
+        self.hardbass1 = pygame.image.load('hardbass1.png')  # эти два изображения не используются,
         # т.к. я плохо шарю во времени в питон. Но когда разберусь, сделаю героя танцующего хардбасс
         self.hardbass2 = pygame.image.load('hardbass2.png')
         self.width = width
@@ -36,73 +62,68 @@ class MapPeredvizenie:
         self.fight = False
 
     def render(self):
-        if self.inventory_true:
-            self.char.inventory.render()
-        elif self.fight:
-            self.char.fight.render()
-        else:
-            screen.blit(self.back, (0, 0))
-            for x in range(self.width):
-                for y in range(self.height):
-                    if self.board[y][x] == 2:
-                        screen.blit(self.enermy_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 3:
-                        screen.blit(self.apple_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 4:
-                        screen.blit(self.treasures_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 5:
-                        screen.blit(self.exit_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 6:
-                        screen.blit(self.bars,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                        font = pygame.font.Font(None, 25)
-                        text = font.render(f"{self.char.hp}/{self.char.hp_max}", 1, (255, 255, 255))
-                        screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
-                                           y * self.cell_size + self.top + self.cell_size // 2))
-                        font = pygame.font.Font(None, 25)
-                        text = font.render(f"{self.char.money}", 1, (255, 255, 0))
-                        screen.blit(text, (x * self.cell_size + self.left + 40,
-                                           y * self.cell_size + self.top + 90))
-                        font = pygame.font.Font(None, 25)
-                        text = font.render(f"{self.char.dices}", 1, (255, 255, 255))
-                        screen.blit(text, (x * self.cell_size + self.left + 97,
-                                           y * self.cell_size + self.top + 89))
-                    elif self.board[y][x] == 7:
-                        screen.blit(self.character,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 9:
-                        screen.blit(self.inventorybtn,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == 10:
-                        screen.blit(self.quit_game,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    elif self.board[y][x] == '-':
-                        screen.blit(self.r_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
-                    if (x, y) == self.risotto_coords:
-                        screen.blit(self.hero_image,
-                                    (x * self.cell_size + self.left,
-                                     y * self.cell_size + self.top))
+        screen.blit(self.back, (0, 0))
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.board[y][x] == 2:
+                    screen.blit(self.enermy_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 3:
+                    screen.blit(self.apple_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 4:
+                    screen.blit(self.treasures_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 5:
+                    screen.blit(self.exit_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 6:
+                    screen.blit(self.bars,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
                     font = pygame.font.Font(None, 25)
-                    text = font.render(f"Для ходьбы жмите на клетку около героя", 1, (0, 0, 0))
-                    screen.blit(text, (1, 10))
-                    pygame.draw.rect(screen, (0, 0, 0),
-                                     (self.left + x * self.cell_size,
-                                      self.top + y * self.cell_size,
-                                      self.cell_size, self.cell_size), 1)
+                    text = font.render(f"{self.char.hp}/{self.char.hp_max}", 1, (255, 255, 255))
+                    screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
+                                       y * self.cell_size + self.top + self.cell_size // 2))
+                    font = pygame.font.Font(None, 25)
+                    text = font.render(f"{self.char.money}", 1, (255, 255, 0))
+                    screen.blit(text, (x * self.cell_size + self.left + 40,
+                                       y * self.cell_size + self.top + 90))
+                    font = pygame.font.Font(None, 25)
+                    text = font.render(f"{self.char.dices}", 1, (255, 255, 255))
+                    screen.blit(text, (x * self.cell_size + self.left + 97,
+                                       y * self.cell_size + self.top + 89))
+                elif self.board[y][x] == 7:
+                    screen.blit(self.character,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 9:
+                    screen.blit(self.inventorybtn,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 10:
+                    screen.blit(self.quit_game,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == '-':
+                    screen.blit(self.r_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                if (x, y) == self.risotto_coords:
+                    screen.blit(self.hero_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                font = pygame.font.Font(None, 25)
+                text = font.render(f"Для ходьбы жмите на клетку около героя", 1, (0, 0, 0))
+                screen.blit(text, (1, 10))
+                pygame.draw.rect(screen, (0, 0, 0),
+                                 (self.left + x * self.cell_size,
+                                  self.top + y * self.cell_size,
+                                  self.cell_size, self.cell_size), 1)
 
     def get_cell(self, mouse_pos):
         if (self.left <= mouse_pos[0] <= self.left + self.cell_size * self.width and
@@ -114,12 +135,12 @@ class MapPeredvizenie:
             return None
 
     def on_click(self, cell_coords):
+        global active_file
         y, x = cell_coords
         if self.board[y][x] == 9:
-            print(self.inventory_true)
-            self.inventory_true = not self.inventory_true
+            active_file = files[1]
         elif self.board[y][x] == 10:
-            pass
+            active_file = Menu()
         ex, ey = self.risotto_coords
         well_coords = [(ey + 1, ex),
                        (ey - 1, ex),
@@ -147,14 +168,6 @@ class MapPeredvizenie:
             self.risotto_coords = (x, y)
         elif self.board[y][x] == 5:
             self.risotto_coords = (x, y)
-        elif self.board[y][x] == 6:
-            pass  # бары хп и прочего
-        elif self.board[y][x] == 7:
-            pass
-            # ?
-        elif self.board[y][x] == 8:
-            pass
-            # ?
 
     def get_click(self, mouse_pos):
         cell = self.get_cell(mouse_pos)
@@ -175,7 +188,7 @@ class MainCharacter(MapPeredvizenie):
         self.fight = None
 
     def attack(self, x):
-        pass # насчёт боя я вообще без понятия шо делать... Думаю подрубить время и делать долгие анимации
+        pass  # насчёт боя я вообще без понятия шо делать... Думаю подрубить время и делать долгие анимации
         # плюс к этому сделать все заготовки атаковалок(наскриншотить, поиграв в игру :D) и атаковалок врагов
         # ну и враг представленный здесь - "Демон лицея" должен будет иметь 1 способность "Цикл while":
         # "нужно не больше 3, наносит 1 урон и возвращает кубик" что сделает его сильным противником
@@ -203,8 +216,12 @@ class MainCharacter(MapPeredvizenie):
         pass
 
 
-class Inventory:
+class Inventory(MapPeredvizenie):
     def __init__(self, char):
+        global active_file
+        self.width, self.height = 9, 5
+        inventar = [[0, 0], [0, 0], [0, 0]]
+        self.backpack = []
         self.char = char
         self.cell_size = 120
         self.left = 40
@@ -265,26 +282,48 @@ class Inventory:
                                  (self.left + x * self.cell_size,
                                   self.top + y * self.cell_size,
                                   self.cell_size, self.cell_size), 1)
+    def on_click(self, cell_coords):
+        global active_file
+        y, x = cell_coords
+        if self.board[y][x] == 9:
+            active_file = files[0]
+        elif self.board[y][x] == 10:
+            active_file = Menu()
+
+    def hranenie(self, something=0):
+        for i in self.inventar:
+            if i[0] == 0:
+                i[0] = (something)
+                break
+            elif i[1] == 0:
+                i[1] = (something)
+                break
+        self.backpack.append(something)
 
 
-class Fight(MainCharacter):
+class Fight(MapPeredvizenie):
     def __init__(self, character, enermy):
+        global active_file
+        self.width, self.height = 9, 5
+        active_file = self
         self.character = character
         self.cell_size = 120
         self.left = 40
         self.top = 70
         self.fight_back = pygame.image.load('fight1.jpg')
+        self.hero_in_fight = pygame.image.load('hero_in_fight.png')
         self.quit_game = pygame.image.load('quitgame.png')
         self.bars = pygame.image.load('bars.png')
         self.char = pygame.image.load('char.png')
+        self.perebros = pygame.image.load('perebros.png')
         if enermy == 2:
             self.enermy = Luceum_demon()
             self.enermy_image = pygame.image.load('battle_enemy.png')
         self.board = [[0, 0, 0, 0, 0, 0, 2, 0, 0],
+                      [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 7, 6, 10, 0, 0, 0, 0, 0]]
+                      [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 7, 6, 0, 0, 0, 0, 0]]
 
     def render(self):
         screen.blit(self.fight_back, (0, 0))
@@ -292,6 +331,14 @@ class Fight(MainCharacter):
             for y in range(5):
                 if self.board[y][x] == 2:
                     screen.blit(self.enermy_image,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 3:
+                    screen.blit(self.perebros,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 1:
+                    screen.blit(self.hero_in_fight,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
                 elif self.board[y][x] == 6:
@@ -323,21 +370,24 @@ class Fight(MainCharacter):
                                   self.top + y * self.cell_size,
                                   self.cell_size, self.cell_size), 1)
 
-    def get_click(self):
-        pass
+    def on_click(self, cell_coords):
+        global active_file, files
+        y, x = cell_coords
+        print('attack!')
 
     def __next__(self):
         self.character.dices = self.character.dice_max
-        self.enermy
+        self.enermy.attack()
+        self.enermy.dices = self.enermy.dice_max
 
 
 class Luceum_demon(Fight):
     def __init__(self):
-        self.map_coords = (1, 1)
         self.hp = 8
         self.exp = 1
         self.money = 1
         self.dices = 1
+        self.dices_max = 1
 
     def change_something(self, hp=0, dices=0):
         self.hp += hp
@@ -351,6 +401,18 @@ class Luceum_demon(Fight):
 
 
 pygame.init()
+map = [[0, 0, 2, '-', 4, 0, 0, 0, 0],
+       [0, '-', '-', 0, 0, 0, 5, 0, 0],
+       [0, 0, '-', 3, '-', 2, 4, 0, 0],
+       [0, 0, 0, 3, 0, 0, 0, 0, 0],
+       [0, 8, 7, 6, 0, 0, 9, 10, 0]]
+size = width, height = 1200, 675
+screen = pygame.display.set_mode(size)
+character = MainCharacter()
+map = MapPeredvizenie(9, 5, character, map)
+inventory = Inventory(character)
+files = [map, inventory]
+active_file = map
 # 10 - инвентарь
 # 1 - гг(нет, я это переработал)
 # 2 - злодей
@@ -364,15 +426,6 @@ pygame.init()
 # 10 - выход
 # "-" - дорожки
 # 0 - пустота
-map = [[0, 0, 2, '-', 4, 0, 0, 0, 0],
-       [0, '-', '-', 0, 0, 0, 5, 0, 0],
-       [0, 0, '-', 3, '-', 2, 4, 0, 0],
-       [0, 0, 0, 3, 0, 0, 0, 0, 0],
-       [0, 8, 7, 6, 0, 0, 9, 10, 0]]
-size = width, height = 1200, 675
-screen = pygame.display.set_mode(size)
-character = MainCharacter()
-board = MapPeredvizenie(9, 5, character, map)
 running = True
 MYEVENTTYPE = 10
 pygame.time.set_timer(MYEVENTTYPE, 10)
@@ -384,12 +437,12 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONUP:
-            board.get_click(event.pos)
+            active_file.get_click(event.pos)
             radius = 0
             drew = True
         if event.type == MYEVENTTYPE and peremeshenie:
             coord += 1
     screen.fill((200, 0, 200))
-    board.render()
+    active_file.render()
     pygame.display.flip()
 pygame.quit()
