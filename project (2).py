@@ -1,8 +1,21 @@
 import pygame
 import copy
 import random
+import os
 
 global active_file, running, files
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    image = pygame.image.load(fullname).convert()
+    if colorkey is not None:
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
 
 
 class Menu:
@@ -282,6 +295,7 @@ class Inventory(MapPeredvizenie):
                                  (self.left + x * self.cell_size,
                                   self.top + y * self.cell_size,
                                   self.cell_size, self.cell_size), 1)
+
     def on_click(self, cell_coords):
         global active_file
         y, x = cell_coords
@@ -412,7 +426,7 @@ character = MainCharacter()
 map = MapPeredvizenie(9, 5, character, map)
 inventory = Inventory(character)
 files = [map, inventory]
-active_file = map
+active_file = Menu()
 # 10 - инвентарь
 # 1 - гг(нет, я это переработал)
 # 2 - злодей
@@ -426,6 +440,28 @@ active_file = map
 # 10 - выход
 # "-" - дорожки
 # 0 - пустота
+all_sprites = pygame.sprite.Group()
+pygame.mouse.set_visible(False)
+
+
+class Cursor(pygame.sprite.Sprite):
+    image = load_image("arrow.png", -1)
+
+    def __init__(self, group):
+        # НЕОБХОДИМО вызвать конструктор родительского класса Sprite. Это очень важно !!!
+        super().__init__(group)
+        self.image = Cursor.image
+        self.rect = self.image.get_rect()
+
+    def get_event(self, pos):
+        self.update(pos)
+
+    def update(self, coords):
+        self.rect.x, self.rect.y = coords
+
+
+Cursor(all_sprites)
+
 running = True
 MYEVENTTYPE = 10
 pygame.time.set_timer(MYEVENTTYPE, 10)
@@ -442,7 +478,12 @@ while running:
             drew = True
         if event.type == MYEVENTTYPE and peremeshenie:
             coord += 1
-    screen.fill((200, 0, 200))
+        if event.type == pygame.MOUSEMOTION:
+            for i in all_sprites:
+                if pygame.mouse.get_focused():
+                    i.get_event(event.pos)
     active_file.render()
+    if pygame.mouse.get_focused():
+        all_sprites.draw(screen)
     pygame.display.flip()
 pygame.quit()
