@@ -3,7 +3,7 @@ import copy
 import random
 import os
 
-global active_file, running, files
+global active_file, running, files, count, all_sprites, dice
 
 
 def load_image(name, colorkey=None):
@@ -228,12 +228,18 @@ class MainCharacter(MapPeredvizenie):
     def on_click(self, cell_coords):
         pass
 
+    def lvl_up(self):
+        pass
+
+    def __next__(self):
+        pass
+
 
 class Inventory(MapPeredvizenie):
     def __init__(self, char):
         global active_file
         self.width, self.height = 9, 5
-        inventar = [[0, 0], [0, 0], [0, 0]]
+        self.inventar = [[Weapons(lambda x: x < 4, 'battle_axe.png', lambda x: x * 2), 0], [0, 0], [0, 0]]
         self.backpack = []
         self.char = char
         self.cell_size = 120
@@ -315,12 +321,30 @@ class Inventory(MapPeredvizenie):
         self.backpack.append(something)
 
 
+class Weapons:
+    def __init__(self, attack_question, image=0, damage=0, size=1, dmg_type=0):
+        self.attack_question, self.damage, \
+        self.size, self.dmg_type = attack_question, \
+                                   damage, size, dmg_type
+        self.image = pygame.image.load(image)
+
+    def attack(self, dice):
+        dmg_q = list(map(self.attack_question, [dice]))
+        if bool(dmg_q[0]):
+            if self.damage != 0:
+                return list(map(self.damage, [dice]))[0]
+            return dice
+        return False
+
+
 class Fight(MapPeredvizenie):
     def __init__(self, character, enermy):
         global active_file
         self.width, self.height = 9, 5
         active_file = self
         self.character = character
+        self.bars = pygame.image.load('bars.png')
+        self.perebros_counter = 3
         self.cell_size = 120
         self.left = 40
         self.top = 70
@@ -333,7 +357,7 @@ class Fight(MapPeredvizenie):
         if enermy == 2:
             self.enermy = Luceum_demon()
             self.enermy_image = pygame.image.load('battle_enemy.png')
-        self.board = [[0, 0, 0, 0, 0, 0, 2, 0, 0],
+        self.board = [[0, 0, 0, 0, 0, 6, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -347,6 +371,14 @@ class Fight(MapPeredvizenie):
                     screen.blit(self.enermy_image,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
+                elif self.board[y][x] == 6:
+                    screen.blit(self.bars,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                    font = pygame.font.Font(None, 25)
+                    text = font.render(f"{self.enermy.hp}/{self.enermy.hp_max}", 1, (255, 255, 255))
+                    screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
+                                       y * self.cell_size + self.top + self.cell_size // 2))
                 elif self.board[y][x] == 3:
                     screen.blit(self.perebros,
                                 (x * self.cell_size + self.left,
@@ -383,11 +415,39 @@ class Fight(MapPeredvizenie):
                                  (self.left + x * self.cell_size,
                                   self.top + y * self.cell_size,
                                   self.cell_size, self.cell_size), 1)
+            for x in range(1):
+                for y in range(2):
+                    if self.character.inventory.inventar[y][x] != 0:
+                        screen.blit(self.character.inventory.inventar[y][x].image,
+                                    ((x + 1) * self.cell_size + self.left,
+                                     (y + 1) * self.cell_size + self.top))
+
 
     def on_click(self, cell_coords):
-        global active_file, files
+        global active_file, files, count, all_sprites, dice
+        if not cell_coords:
+            return None
         y, x = cell_coords
-        print('attack!')
+        if (x, y) in [(1, 1), (1, 2),
+                      (2, 1), (2, 2),
+                      (3, 1), (3, 2)]:
+            if count > 0:
+                if self.character.inventory.inventar[x - 1][y - 1] != 0:
+                    if self.character.inventory.inventar[x - 1][y - 1].attack(dice):
+                        self.enermy.hp -= self.character.inventory.inventar[x - 1][y - 1].attack(dice)
+                        self.character.dices -= 1
+                        count -= 1
+                    print(self.enermy.hp)
+                    all_sprites = pygame.sprite.Group()
+                    all_sprites.add(Cursor(all_sprites))
+            if count <= 0:
+                all_sprites = pygame.sprite.Group()
+                pygame.mouse.set_visible(True)
+        if (x, y) in [(5, 2), (5, 1)]:
+            if self.perebros_counter > 0:
+                all_sprites = pygame.sprite.Group()
+                all_sprites.add(Cursor(all_sprites))
+            self.perebros_counter -= 1
 
     def __next__(self):
         self.character.dices = self.character.dice_max
@@ -398,6 +458,7 @@ class Fight(MapPeredvizenie):
 class Luceum_demon(Fight):
     def __init__(self):
         self.hp = 8
+        self.hp_max = 8
         self.exp = 1
         self.money = 1
         self.dices = 1
@@ -415,18 +476,21 @@ class Luceum_demon(Fight):
 
 
 pygame.init()
-map = [[0, 0, 2, '-', 4, 0, 0, 0, 0],
-       [0, '-', '-', 0, 0, 0, 5, 0, 0],
-       [0, 0, '-', 3, '-', 2, 4, 0, 0],
-       [0, 0, 0, 3, 0, 0, 0, 0, 0],
-       [0, 8, 7, 6, 0, 0, 9, 10, 0]]
+map_1 = [[0, 0, 2, '-', 4, 0, 0, 0, 0],
+         [0, '-', '-', 0, 0, 0, 5, 0, 0],
+         [0, 0, '-', 3, '-', 2, 4, 0, 0],
+         [0, 0, 0, 3, 0, 0, 0, 0, 0],
+         [0, 8, 7, 6, 0, 0, 9, 10, 0]]
 size = width, height = 1200, 675
 screen = pygame.display.set_mode(size)
 character = MainCharacter()
-map = MapPeredvizenie(9, 5, character, map)
+map_1lvl = MapPeredvizenie(9, 5, character, map_1)
 inventory = Inventory(character)
-files = [map, inventory]
+files = [map_1lvl, inventory]
 active_file = Menu()
+active_file = map_1lvl
+count = 2
+dice = 6
 # 10 - инвентарь
 # 1 - гг(нет, я это переработал)
 # 2 - злодей
@@ -441,23 +505,32 @@ active_file = Menu()
 # "-" - дорожки
 # 0 - пустота
 all_sprites = pygame.sprite.Group()
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
 
 
 class Cursor(pygame.sprite.Sprite):
-    image = load_image("arrow.png", -1)
-
     def __init__(self, group):
+        global dice
         # НЕОБХОДИМО вызвать конструктор родительского класса Sprite. Это очень важно !!!
         super().__init__(group)
-        self.image = Cursor.image
+        dice = self.chislo = random.randint(1, 6)
+        image = load_image(f"{self.chislo}.png", -1)
+        self.image = image
         self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = -100, -100
 
     def get_event(self, pos):
+        self.rect = self.image.get_rect()
         self.update(pos)
 
     def update(self, coords):
         self.rect.x, self.rect.y = coords
+
+    def change(self):
+        global dice
+        dice = self.chislo = random.randint(1, 6)
+        image = load_image(f"{self.chislo}.png", -1)
+        self.image = image
 
 
 Cursor(all_sprites)
@@ -478,10 +551,12 @@ while running:
             drew = True
         if event.type == MYEVENTTYPE and peremeshenie:
             coord += 1
-        if event.type == pygame.MOUSEMOTION:
+        if event.type == pygame.MOUSEMOTION and type(active_file) == Fight and count != 0:
+            pygame.mouse.set_visible(False)
             for i in all_sprites:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
+
     active_file.render()
     if pygame.mouse.get_focused():
         all_sprites.draw(screen)
