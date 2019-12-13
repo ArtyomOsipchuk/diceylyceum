@@ -196,6 +196,8 @@ class MainCharacter(MapPeredvizenie):
         self.money = 0
         self.dices = 2
         self.dice_max = 2
+        self.exp = 0
+        self.lvl_up_xp = 4
         self.rage = 0
         self.inventory = Inventory(self)
         self.fight = None
@@ -228,8 +230,19 @@ class MainCharacter(MapPeredvizenie):
     def on_click(self, cell_coords):
         pass
 
-    def lvl_up(self):
-        pass
+    def lvl_up(self, exp, money):
+        self.exp += exp
+        self.money += money
+        if self.lvl_up_xp < self.exp:
+            return False
+        if self.exp > self.lvl_up_xp:
+            self.exp = self.exp - self.lvl_up_xp
+        elif self.exp == self.lvl_up_xp:
+            self.exp = 0
+        self.lvl_up_xp += 4
+        self.hp_max += 4
+        print(f'exp = {self.exp}, hp_max = {self.hp_max}')
+        return True
 
     def __next__(self):
         pass
@@ -239,7 +252,12 @@ class Inventory(MapPeredvizenie):
     def __init__(self, char):
         global active_file
         self.width, self.height = 9, 5
-        self.inventar = [[Weapons(lambda x: x < 4, 'battle_axe.png', lambda x: x * 2), 0], [0, 0], [0, 0]]
+        self.inventar = [[Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2),
+                          Weapons(lambda x: x, 'sword+.png', lambda x: x + 1)],
+                         [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
+                          Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
+                         [Weapons(lambda x: x, 'sword+.png', lambda x: x + 1),
+                          Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]]
         self.backpack = []
         self.char = char
         self.cell_size = 120
@@ -313,16 +331,16 @@ class Inventory(MapPeredvizenie):
     def hranenie(self, something=0):
         for i in self.inventar:
             if i[0] == 0:
-                i[0] = (something)
+                i[0] = something
                 break
             elif i[1] == 0:
-                i[1] = (something)
+                i[1] = something
                 break
         self.backpack.append(something)
 
 
 class Weapons:
-    def __init__(self, attack_question, image=0, damage=0, size=1, dmg_type=0):
+    def __init__(self, attack_question, image, damage=0, size=1, dmg_type=0):
         self.attack_question, self.damage, \
         self.size, self.dmg_type = attack_question, \
                                    damage, size, dmg_type
@@ -340,6 +358,8 @@ class Weapons:
 class Fight(MapPeredvizenie):
     def __init__(self, character, enermy):
         global active_file
+        self.first = False
+        self.second = False
         self.width, self.height = 9, 5
         active_file = self
         self.character = character
@@ -348,6 +368,7 @@ class Fight(MapPeredvizenie):
         self.cell_size = 120
         self.left = 40
         self.top = 70
+        self.win_image = pygame.image.load('win_fight.png')
         self.fight_back = pygame.image.load('fight1.jpg')
         self.hero_in_fight = pygame.image.load('hero_in_fight.png')
         self.quit_game = pygame.image.load('quitgame.png')
@@ -357,76 +378,98 @@ class Fight(MapPeredvizenie):
         if enermy == 2:
             self.enermy = Luceum_demon()
             self.enermy_image = pygame.image.load('battle_enemy.png')
-        self.board = [[0, 0, 0, 0, 0, 6, 2, 0, 0],
+        self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 0, 7, 6, 0, 0, 0, 0, 0]]
 
     def render(self):
-        screen.blit(self.fight_back, (0, 0))
-        for x in range(9):
-            for y in range(5):
-                if self.board[y][x] == 2:
-                    screen.blit(self.enermy_image,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                elif self.board[y][x] == 6:
-                    screen.blit(self.bars,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                    font = pygame.font.Font(None, 25)
-                    text = font.render(f"{self.enermy.hp}/{self.enermy.hp_max}", 1, (255, 255, 255))
-                    screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
-                                       y * self.cell_size + self.top + self.cell_size // 2))
-                elif self.board[y][x] == 3:
-                    screen.blit(self.perebros,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                elif self.board[y][x] == 1:
-                    screen.blit(self.hero_in_fight,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                elif self.board[y][x] == 6:
-                    screen.blit(self.bars,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                    font = pygame.font.Font(None, 25)
-                    text = font.render(f"{self.character.hp}/{self.character.hp_max}", 1, (255, 255, 255))
-                    screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
-                                       y * self.cell_size + self.top + self.cell_size // 2))
-                    font = pygame.font.Font(None, 25)
-                    text = font.render(f"{self.character.money}", 1, (255, 255, 0))
-                    screen.blit(text, (x * self.cell_size + self.left + 40,
-                                       y * self.cell_size + self.top + 90))
-                    font = pygame.font.Font(None, 25)
-                    text = font.render(f"{self.character.dices}", 1, (255, 255, 255))
-                    screen.blit(text, (x * self.cell_size + self.left + 97,
-                                       y * self.cell_size + self.top + 89))
-                elif self.board[y][x] == 7:
-                    screen.blit(self.char,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                elif self.board[y][x] == 10:
-                    screen.blit(self.quit_game,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                pygame.draw.rect(screen, (0, 0, 0),
-                                 (self.left + x * self.cell_size,
-                                  self.top + y * self.cell_size,
-                                  self.cell_size, self.cell_size), 1)
-            for x in range(1):
-                for y in range(2):
-                    if self.character.inventory.inventar[y][x] != 0:
-                        screen.blit(self.character.inventory.inventar[y][x].image,
-                                    ((x + 1) * self.cell_size + self.left,
-                                     (y + 1) * self.cell_size + self.top))
-
+        if self.enermy.hp <= 0:
+            screen.blit(self.win_image, (0, 0))
+        else:
+            screen.blit(self.fight_back, (0, 0))
+            for x in range(9):
+                for y in range(5):
+                    if self.board[y][x] == 2:
+                        screen.blit(self.enermy_image,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 13:
+                        screen.blit(self.bars,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"{self.enermy.hp}/{self.enermy.hp_max}", 1, (255, 255, 255))
+                        screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
+                                           y * self.cell_size + self.top + self.cell_size // 2))
+                    elif self.board[y][x] == 3:
+                        screen.blit(self.perebros,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 1:
+                        screen.blit(self.hero_in_fight,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 6:
+                        screen.blit(self.bars,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"{self.character.hp}/{self.character.hp_max}", 1, (255, 255, 255))
+                        screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
+                                           y * self.cell_size + self.top + self.cell_size // 2))
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"{self.character.money}", 1, (255, 255, 0))
+                        screen.blit(text, (x * self.cell_size + self.left + 40,
+                                           y * self.cell_size + self.top + 90))
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"{self.character.dices}", 1, (255, 255, 255))
+                        screen.blit(text, (x * self.cell_size + self.left + 97,
+                                           y * self.cell_size + self.top + 89))
+                    elif self.board[y][x] == 7:
+                        screen.blit(self.char,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 10:
+                        screen.blit(self.quit_game,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    pygame.draw.rect(screen, (0, 0, 0),
+                                     (self.left + x * self.cell_size,
+                                      self.top + y * self.cell_size,
+                                      self.cell_size, self.cell_size), 1)
+                for x in range(2):
+                    for y in range(3):
+                        if self.character.inventory.inventar[y][x] != 0:
+                            screen.blit(self.character.inventory.inventar[y][x].image,
+                                        ((y + 1) * self.cell_size + self.left,
+                                         (x + 1) * self.cell_size + self.top))
 
     def on_click(self, cell_coords):
         global active_file, files, count, all_sprites, dice
         if not cell_coords:
             return None
+        if self.enermy.hp <= 0 and not self.first:
+            self.first = True
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
+        elif self.first and not self.second:
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
+            if self.character.lvl_up(self.enermy.exp, self.enermy.money):
+                self.win_image = pygame.image.load('new_dice.png')
+                self.character.dices += 1
+                self.second = True
+                all_sprites = pygame.sprite.Group()
+            else:
+                files[0].board[self.enermy.enermy_coords[1]][self.enermy.enermy_coords[0]] = '-'
+                active_file = files[0]
+        elif self.second:
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
+            files[0].board[self.enermy.enermy_coords[1]][self.enermy.enermy_coords[0]] = '-'
+            active_file = files[0]
         y, x = cell_coords
         if (x, y) in [(1, 1), (1, 2),
                       (2, 1), (2, 2),
@@ -437,9 +480,9 @@ class Fight(MapPeredvizenie):
                         self.enermy.hp -= self.character.inventory.inventar[x - 1][y - 1].attack(dice)
                         self.character.dices -= 1
                         count -= 1
+                        all_sprites = pygame.sprite.Group()
+                        all_sprites.add(Cursor(all_sprites))
                     print(self.enermy.hp)
-                    all_sprites = pygame.sprite.Group()
-                    all_sprites.add(Cursor(all_sprites))
             if count <= 0:
                 all_sprites = pygame.sprite.Group()
                 pygame.mouse.set_visible(True)
@@ -463,6 +506,7 @@ class Luceum_demon(Fight):
         self.money = 1
         self.dices = 1
         self.dices_max = 1
+        self.enermy_coords = (2, 2)
 
     def change_something(self, hp=0, dices=0):
         self.hp += hp
@@ -488,7 +532,6 @@ map_1lvl = MapPeredvizenie(9, 5, character, map_1)
 inventory = Inventory(character)
 files = [map_1lvl, inventory]
 active_file = Menu()
-active_file = map_1lvl
 count = 2
 dice = 6
 # 10 - инвентарь
