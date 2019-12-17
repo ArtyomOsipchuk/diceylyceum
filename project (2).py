@@ -295,6 +295,10 @@ class Inventory(MapPeredvizenie):
                     text = font.render(f"{self.char.dices}", 1, (255, 255, 255))
                     screen.blit(text, (x * self.cell_size + self.left + 97,
                                        y * self.cell_size + self.top + 89))
+                elif self.board[y][x] == 1:
+                    screen.blit(self.inventorycell,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
                 elif self.board[y][x] == 7:
                     screen.blit(self.character,
                                 (x * self.cell_size + self.left,
@@ -307,18 +311,20 @@ class Inventory(MapPeredvizenie):
                     screen.blit(self.quit_game,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
+                pygame.draw.rect(screen, (0, 0, 0),
+                                 (self.left + x * self.cell_size,
+                                  self.top + y * self.cell_size,
+                                  self.cell_size, self.cell_size), 1)
+        for x in range(2):
+            for y in range(3):
+                if self.inventar[y][x] != 0:
+                    screen.blit(self.inventar[y][x].image,
+                                ((y + 6) * self.cell_size + self.left,
+                                 (x + 2) * self.cell_size + self.top))
                 elif self.board[y][x] == 1:
                     screen.blit(self.inventorycell,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                pygame.draw.rect(screen, (0, 0, 0),
-                                 (self.left + x * self.cell_size,
-                                  self.top + y * self.cell_size,
-                                  self.cell_size, self.cell_size), 1)
-                pygame.draw.rect(screen, (0, 0, 0),
-                                 (self.left + x * self.cell_size,
-                                  self.top + y * self.cell_size,
-                                  self.cell_size, self.cell_size), 1)
+                                ((y + 5) * self.cell_size + self.left,
+                                 (x + 2) * self.cell_size + self.top))
 
     def on_click(self, cell_coords):
         global active_file
