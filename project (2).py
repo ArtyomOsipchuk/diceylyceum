@@ -555,6 +555,7 @@ dice = 6
 # 0 - пустота
 all_sprites = pygame.sprite.Group()
 pygame.mouse.set_visible(True)
+map_sprites = pygame.sprite.Group()
 
 
 class Cursor(pygame.sprite.Sprite):
@@ -582,15 +583,42 @@ class Cursor(pygame.sprite.Sprite):
         self.image = image
 
 
-Cursor(all_sprites)
+class AnimatedMap(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__(map_sprites)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+
+player_animation = AnimatedMap(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
+exit_animation = AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * 6, 70 + 120)
+demon_dance = AnimatedMap(load_image("demon_dance.png"), 2, 1, 40 + 120 * 2, 70)
+cursor = Cursor(all_sprites)
 
 running = True
-MYEVENTTYPE = 10
-pygame.time.set_timer(MYEVENTTYPE, 10)
+MYEVENTTYPE = 1
+pygame.time.set_timer(MYEVENTTYPE, 10000)
 clock = pygame.time.Clock()
 coord = 0
 peremeshenie = False
 while running:
+    active_file.render()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -598,16 +626,18 @@ while running:
             active_file.get_click(event.pos)
             radius = 0
             drew = True
-        if event.type == MYEVENTTYPE and peremeshenie:
-            coord += 1
+        if event.type == MYEVENTTYPE:
+            print('yare yare daze')
         if event.type == pygame.MOUSEMOTION and type(active_file) == Fight and count != 0:
             pygame.mouse.set_visible(False)
             for i in all_sprites:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
-
-    active_file.render()
+    if active_file == files[0]:
+        map_sprites.update()
+        map_sprites.draw(screen)
     if pygame.mouse.get_focused():
         all_sprites.draw(screen)
     pygame.display.flip()
+    clock.tick(1)
 pygame.quit()
