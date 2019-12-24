@@ -3,7 +3,7 @@ import copy
 import random
 import os
 
-global active_file, running, files, count, all_sprites, dice
+global active_file, running, files, count, all_sprites, dice, cursor_bool
 
 
 def load_image(name, colorkey=None):
@@ -363,7 +363,8 @@ class Weapons:
 
 class Fight(MapPeredvizenie):
     def __init__(self, character, enermy):
-        global active_file
+        global active_file, cursor_bool
+        cursor_bool = True
         self.first = False
         self.second = False
         self.width, self.height = 9, 5
@@ -453,12 +454,12 @@ class Fight(MapPeredvizenie):
                                          (x + 1) * self.cell_size + self.top))
 
     def on_click(self, cell_coords):
-        global active_file, files, count, all_sprites, dice
+        global active_file, files, count, all_sprites, dice, cursor_bool
         if not cell_coords:
             return None
         if self.enermy.hp <= 0 and not self.first:
             self.first = True
-            all_sprites = pygame.sprite.Group()
+            cursor_bool = False
             pygame.mouse.set_visible(True)
         elif self.first and not self.second:
             all_sprites = pygame.sprite.Group()
@@ -556,6 +557,7 @@ dice = 6
 all_sprites = pygame.sprite.Group()
 pygame.mouse.set_visible(True)
 map_sprites = pygame.sprite.Group()
+character_sprite = pygame.sprite.Group()
 
 
 class Cursor(pygame.sprite.Sprite):
@@ -606,20 +608,63 @@ class AnimatedMap(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
-player_animation = AnimatedMap(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
+class AnimatedCharacter(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__(character_sprite)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+        self.rect.x = 120 + 40
+        self.rect.y = 120 + 70
+        self.vx = 0
+        self.vy = 0
+        self.purpose = (0, 0)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        global end_hod
+        self.rect = self.rect.move(self.vx, self.vy)
+        if self.purpose == (self.rect.x, self.rect.y):
+            end_hod = True
+            self.vx = 0
+            self.vy = 0
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+    def go(self, coords):
+
+        self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
+        self.vx = 5 * coords[0]
+        self.vy = 5 * coords[1]
+
+
+player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
 exit_animation = AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * 6, 70 + 120)
 demon_dance = AnimatedMap(load_image("demon_dance.png"), 2, 1, 40 + 120 * 2, 70)
 cursor = Cursor(all_sprites)
 
 running = True
+cursor_bool = True
 MYEVENTTYPE = 1
 pygame.time.set_timer(MYEVENTTYPE, 10000)
 clock = pygame.time.Clock()
 coord = 0
 peremeshenie = False
+end_hod = True
 while running:
     active_file.render()
     for event in pygame.event.get():
+        keys = pygame.key.get_pressed()
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONUP:
@@ -627,17 +672,31 @@ while running:
             radius = 0
             drew = True
         if event.type == MYEVENTTYPE:
-            print('yare yare daze')
-        if event.type == pygame.MOUSEMOTION and type(active_file) == Fight and count != 0:
+            print('Проверка, работают ли вообще "мои" ивенты...')
+        if event.type == pygame.MOUSEMOTION and type(active_file) == Fight and cursor_bool:
             pygame.mouse.set_visible(False)
             for i in all_sprites:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
+        if active_file == files[0] and keys[pygame.K_LEFT] and end_hod:
+            player_animation.go((-1, 0))
+            end_hod = False
+        elif active_file == files[0] and keys[pygame.K_RIGHT] and end_hod:
+            player_animation.go((1, 0))
+            end_hod = False
+        elif active_file == files[0] and keys[pygame.K_UP] and end_hod:
+            player_animation.go((0, -1))
+            end_hod = False
+        elif active_file == files[0] and keys[pygame.K_DOWN] and end_hod:
+            player_animation.go((0, 1))
+            end_hod = False
     if active_file == files[0]:
         map_sprites.update()
         map_sprites.draw(screen)
+        character_sprite.update()
+        character_sprite.draw(screen)
     if pygame.mouse.get_focused():
         all_sprites.draw(screen)
     pygame.display.flip()
-    clock.tick(1)
+    clock.tick(10)
 pygame.quit()
