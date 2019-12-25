@@ -3,6 +3,8 @@ import copy
 import random
 import os
 
+from lvl_constructor import Load_lvl
+
 global active_file, running, files, count, all_sprites, dice, cursor_bool
 
 
@@ -45,13 +47,11 @@ class MapPeredvizenie:
     def __init__(self, width, height, char, map=0):
         self.width, self.height = 1200, 675
         self.char = char
+        for i in range(len(map)):
+            if '@' in map[i]:
+                self.char.map_coords = (map[i].index('@'), i)
         self.board = map
-        self.risotto_coords = (1, 1)
-        self.back = pygame.image.load('ECc2dTJXoAIjo7K.jpg')  # как подрубать изображения:
-        # self.название = pygame.image.load('название изображения')
-        # чтобы использовать(использую в render()): screen.blit(self.название,
-        #                                                      (координата середины фото по х,
-        #                                                      координата середины фото по у))
+        self.back = pygame.image.load('ECc2dTJXoAIjo7K.jpg')
         self.hero_image = pygame.image.load('hero.png')
         self.enermy_image = pygame.image.load('enermy.png')
         self.apple_image = pygame.image.load('apple2.png')
@@ -78,20 +78,25 @@ class MapPeredvizenie:
         screen.blit(self.back, (0, 0))
         for x in range(self.width):
             for y in range(self.height):
-                if self.board[y][x] == 2:
-                    screen.blit(self.enermy_image,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
+                if not type(self.board[y][x]) == int:
+                    if self.board[y][x][:1] == '#E':
+                        screen.blit(self.enermy_image,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == '-' or self.board[y][x] == '@':
+                        screen.blit(self.r_image,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 'exit':
+                        screen.blit(self.exit_image,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
                 elif self.board[y][x] == 3:
                     screen.blit(self.apple_image,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
                 elif self.board[y][x] == 4:
                     screen.blit(self.treasures_image,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                elif self.board[y][x] == 5:
-                    screen.blit(self.exit_image,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
                 elif self.board[y][x] == 6:
@@ -118,15 +123,11 @@ class MapPeredvizenie:
                     screen.blit(self.inventorybtn,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
-                elif self.board[y][x] == 10:
+                elif self.board[y][x] == 2:
                     screen.blit(self.quit_game,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
-                elif self.board[y][x] == '-':
-                    screen.blit(self.r_image,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
-                if (x, y) == self.risotto_coords:
+                if (x, y) == self.char.map_coords:
                     screen.blit(self.hero_image,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
@@ -147,30 +148,17 @@ class MapPeredvizenie:
         else:
             return None
 
-    def on_click(self, cell_coords):
-        global active_file
+    def proverka(self, cell_coords):
         y, x = cell_coords
-        if self.board[y][x] == 9:
-            active_file = files[1]
-        elif self.board[y][x] == 10:
-            active_file = Menu()
-        ex, ey = self.risotto_coords
+        ex, ey = self.char.map_coords
         well_coords = [(ey + 1, ex),
                        (ey - 1, ex),
                        (ey, ex + 1),
                        (ey, ex - 1)]
-        if not cell_coords or cell_coords not in well_coords:
-            return None
-        if self.board[y][x] == '-':
-            self.risotto_coords = (x, y)
-        elif self.board[y][x] == 2:
-            self.risotto_coords = (x, y)
-            enemy = self.board[y][x]
-            self.board[y][x] = '-'
-            self.char.fight = Fight(self.char, enemy)
-            self.fight = True
-        elif self.board[y][x] == 3:
-            self.risotto_coords = (x, y)
+        if (cell_coords not in well_coords) or (self.board[y][x] == 0):
+            return False
+        if self.board[y][x] == 3:
+            self.char.map_coords = (x, y)
             if self.char.hp != self.char.hp_max:
                 if self.char.hp + 10 > self.char.hp_max:
                     self.char.hp = self.char.hp_max
@@ -178,9 +166,26 @@ class MapPeredvizenie:
                     self.char.change_something(hp=10)
                 self.board[y][x] = '-'
         elif self.board[y][x] == 4:
-            self.risotto_coords = (x, y)
+            self.char.map_coords = (x, y)
         elif self.board[y][x] == 5:
-            self.risotto_coords = (x, y)
+            self.char.map_coords = (x, y)
+        elif self.board[y][x] == '-':
+            self.char.map_coords = (x, y)
+        elif self.board[y][x][:2] == '#E':
+            self.char.map_coords = (x, y)
+            enemy = self.board[y][x][2:]
+            self.board[y][x] = '-'
+            print(f'fight! {enemy}')
+            Fight(self.char, enemy, self)
+        return True
+
+    def on_click(self, cell_coords):
+        global active_file
+        y, x = cell_coords
+        if self.board[y][x] == 9:
+            active_file = files[1]
+        elif self.board[y][x] == 2:
+            active_file = Menu()
 
     def get_click(self, mouse_pos):
         cell = self.get_cell(mouse_pos)
@@ -203,7 +208,7 @@ class MainCharacter(MapPeredvizenie):
         self.fight = None
 
     def attack(self, x):
-        pass  # насчёт боя я вообще без понятия шо делать... Думаю подрубить время и делать долгие анимации
+        pass  # насчёт боя я вообще без понятия что делать... Думаю подрубить время и делать долгие анимации
         # плюс к этому сделать все заготовки атаковалок(наскриншотить, поиграв в игру :D) и атаковалок врагов
         # ну и враг представленный здесь - "Демон лицея" должен будет иметь 1 способность "Цикл while":
         # "нужно не больше 3, наносит 1 урон и возвращает кубик" что сделает его сильным противником
@@ -362,13 +367,14 @@ class Weapons:
 
 
 class Fight(MapPeredvizenie):
-    def __init__(self, character, enermy):
+    def __init__(self, character, enermy, board):
         global active_file, cursor_bool
         cursor_bool = True
+        self.lvl_map = board
+        self.lvl_map.board[character.map_coords[1]][character.map_coords[0]] = '-'
         self.first = False
         self.second = False
         self.width, self.height = 9, 5
-        active_file = self
         self.character = character
         self.bars = pygame.image.load('bars.png')
         self.perebros_counter = 3
@@ -382,14 +388,14 @@ class Fight(MapPeredvizenie):
         self.bars = pygame.image.load('bars.png')
         self.char = pygame.image.load('char.png')
         self.perebros = pygame.image.load('perebros.png')
-        if enermy == 2:
-            self.enermy = Luceum_demon()
-            self.enermy_image = pygame.image.load('battle_enemy.png')
+        self.enermy = Enemy_editor(*[int(i) for i in enermy.split(', ')[2:]])
+        self.enermy_image = load_image(enermy.split(', ')[1])
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 0, 7, 6, 0, 0, 0, 0, 0]]
+        active_file = self
 
     def render(self):
         if self.enermy.hp <= 0:
@@ -470,12 +476,10 @@ class Fight(MapPeredvizenie):
                 self.second = True
                 all_sprites = pygame.sprite.Group()
             else:
-                files[0].board[self.enermy.enermy_coords[1]][self.enermy.enermy_coords[0]] = '-'
                 active_file = files[0]
         elif self.second:
             all_sprites = pygame.sprite.Group()
             pygame.mouse.set_visible(True)
-            files[0].board[self.enermy.enermy_coords[1]][self.enermy.enermy_coords[0]] = '-'
             active_file = files[0]
         y, x = cell_coords
         if (x, y) in [(1, 1), (1, 2),
@@ -505,15 +509,14 @@ class Fight(MapPeredvizenie):
         self.enermy.dices = self.enermy.dice_max
 
 
-class Luceum_demon(Fight):
-    def __init__(self):
-        self.hp = 8
-        self.hp_max = 8
-        self.exp = 1
-        self.money = 1
-        self.dices = 1
-        self.dices_max = 1
-        self.enermy_coords = (2, 2)
+class Enemy_editor(Fight):
+    def __init__(self, hp, hp_max, exp, money, dices):
+        self.hp = hp
+        self.hp_max = hp_max
+        self.exp = exp
+        self.money = money
+        self.dices = dices
+        self.dices_max = dices
 
     def change_something(self, hp=0, dices=0):
         self.hp += hp
@@ -525,24 +528,30 @@ class Luceum_demon(Fight):
     def inventory(self):
         pass
 
+    def next(self):
+        pass
+
 
 pygame.init()
 map_1 = [[0, 0, 2, '-', 4, 0, 0, 0, 0],
-         [0, '-', '-', 0, 0, 0, 5, 0, 0],
+         [0, '@', '-', 0, 0, 0, 5, 0, 0],
          [0, 0, '-', 3, '-', 2, 4, 0, 0],
          [0, 0, 0, 3, 0, 0, 0, 0, 0],
          [0, 8, 7, 6, 0, 0, 9, 10, 0]]
 size = width, height = 1200, 675
 screen = pygame.display.set_mode(size)
 character = MainCharacter()
-map_1lvl = MapPeredvizenie(9, 5, character, map_1)
+a = 'lvl1.txt'
+a = Load_lvl(a).load_level()
+print(len(a), len(a[0]))
+map_1lvl = MapPeredvizenie(9, 5, character, a)
 inventory = Inventory(character)
 files = [map_1lvl, inventory]
 active_file = Menu()
 count = 2
 dice = 6
 # 10 - инвентарь
-# 1 - гг(нет, я это переработал)
+# '@' - гг
 # 2 - злодей
 # 3 - яблоко
 # 4 - сундук
@@ -603,6 +612,9 @@ class AnimatedMap(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
+    def stop(self):
+        self.kill()
+
     def update(self):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
@@ -638,19 +650,35 @@ class AnimatedCharacter(pygame.sprite.Sprite):
             end_hod = True
             self.vx = 0
             self.vy = 0
+
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
 
     def go(self, coords):
-
         self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
-        self.vx = 5 * coords[0]
-        self.vy = 5 * coords[1]
+        if active_file.proverka((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120))):
+            print('go!')
+            self.vx = 5 * coords[0]
+            self.vy = 5 * coords[1]
+        else:
+            self.purpose = self.purpose = self.rect.x, self.rect.y
 
 
-player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
-exit_animation = AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * 6, 70 + 120)
-demon_dance = AnimatedMap(load_image("demon_dance.png"), 2, 1, 40 + 120 * 2, 70)
+animations = []
+for y in range(len(files[0].board)):
+    for x in range(len(files[0].board[0])):
+        if type(files[0].board[y][x]) == int:
+            pass
+        elif files[0].board[y][x][:2] == '#E':
+            AnimatedMap(load_image("demon_dance.png"), 2, 1, 40 + 120 * x, 70 + 120 * y)
+        elif files[0].board[y][x] == 'exit':
+            AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * x, 70 + 120 * y)
+        elif files[0].board[y][x] == '@':
+            player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1,  70 + 120 * y, 40 + 120 * x)
+
+# player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
+# exit_animation = AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * 6, 70 + 120)
+# demon_dance = AnimatedMap(load_image("demon_dance.png"), 2, 1, 40 + 120 * 2, 70)
 cursor = Cursor(all_sprites)
 
 running = True
