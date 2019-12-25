@@ -262,7 +262,13 @@ class Inventory(MapPeredvizenie):
                          [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
                           Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
                          [Weapons(lambda x: x, 'sword+.png', lambda x: x + 1),
-                          Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]]
+                          Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)],
+                         [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
+                          Weapons(lambda x: x, 'hammer.png', lambda x: x)],
+                         [Weapons(lambda x: x <= 3 , 'dopp.png', lambda x: x * 2),
+                          Weapons(lambda x: x, 'sword.png', lambda x: x)],
+                         [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
+                          Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
         self.backpack = []
         self.char = char
         self.cell_size = 120
