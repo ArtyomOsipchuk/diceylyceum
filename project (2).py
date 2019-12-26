@@ -127,10 +127,6 @@ class MapPeredvizenie:
                     screen.blit(self.quit_game,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
-                if (x, y) == self.char.map_coords:
-                    screen.blit(self.hero_image,
-                                (x * self.cell_size + self.left,
-                                 y * self.cell_size + self.top))
                 font = pygame.font.Font(None, 25)
                 text = font.render(f"Для ходьбы жмите на клетку около героя", 1, (0, 0, 0))
                 screen.blit(text, (1, 10))
@@ -257,18 +253,19 @@ class Inventory(MapPeredvizenie):
     def __init__(self, char):
         global active_file
         self.width, self.height = 9, 5
-        self.inventar = [[Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2),
-                          Weapons(lambda x: x, 'sword+.png', lambda x: x + 1)],
+        self.inventar = [[Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
+                          Weapons(lambda x: x, 'hammer.png', lambda x: x)],
                          [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
                           Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
-                         [Weapons(lambda x: x, 'sword+.png', lambda x: x + 1),
-                          Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)],
-                         [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
-                          Weapons(lambda x: x, 'hammer.png', lambda x: x)],
-                         [Weapons(lambda x: x <= 3 , 'dopp.png', lambda x: x * 2),
-                          Weapons(lambda x: x, 'sword.png', lambda x: x)],
                          [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
                           Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
+        # ,
+        #                       [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
+        #                       Weapons(lambda x: x, 'hammer.png', lambda x: x)],
+        #                     [Weapons(lambda x: x <= 3 , 'dopp.png', lambda x: x * 2),
+        #                      Weapons(lambda x: x, 'sword.png', lambda x: x)],
+        #                      [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
+        #                     Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
         self.backpack = []
         self.char = char
         self.cell_size = 120
@@ -361,7 +358,7 @@ class Weapons:
         self.attack_question, self.damage, \
         self.size, self.dmg_type = attack_question, \
                                    damage, size, dmg_type
-        self.image = pygame.image.load(image)
+        self.image = load_image(image)
 
     def attack(self, dice):
         dmg_q = list(map(self.attack_question, [dice]))
@@ -680,7 +677,7 @@ for y in range(len(files[0].board)):
         elif files[0].board[y][x] == 'exit':
             AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * x, 70 + 120 * y)
         elif files[0].board[y][x] == '@':
-            player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1,  70 + 120 * y, 40 + 120 * x)
+            player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 70 + 120 * y, 40 + 120 * x)
 
 # player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
 # exit_animation = AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * 6, 70 + 120)
