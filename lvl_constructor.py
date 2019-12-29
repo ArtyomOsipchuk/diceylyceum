@@ -11,5 +11,6 @@ class Load_lvl:
                 a.append(i)
             new.append(a)
         self.level_map = new
+
     def load_level(self):
         return self.level_map
