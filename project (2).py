@@ -5,7 +5,9 @@ import os
 
 from lvl_constructor import Load_lvl
 
-global active_file, running, files, count, all_sprites, dice, cursor_bool
+global active_file, running, files, count, all_sprites, dice, cursor_bool, lvl_number
+
+lvl_number = 1
 
 
 def load_image(name, colorkey=None):
@@ -145,6 +147,8 @@ class MapPeredvizenie:
             return None
 
     def proverka(self, cell_coords):
+        global lvl_number, active_file, files, all_sprites, map_sprites, enemy_dices, \
+            character_sprite, animations, player_animation, end_hod
         y, x = cell_coords
         ex, ey = self.char.map_coords
         well_coords = [(ey + 1, ex),
@@ -178,6 +182,22 @@ class MapPeredvizenie:
             self.board[y][x] = '-'
             print(f'fight! {enemy}')
             Fight(self.char, enemy, self)
+        elif self.board[y][x] == 'exit':
+            lvl_number += 1
+            new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
+            files[0] = MapPeredvizenie(9, 5, character, new_map)
+            for i in animations:
+                i.kill()
+            player_animation.kill()
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
+            map_sprites = pygame.sprite.Group()
+            character_sprite = pygame.sprite.Group()
+            enemy_dices = pygame.sprite.Group()
+            do_sprites()
+            end_hod = True
+            active_file = files[0]
+
         return True
 
     def on_click(self, cell_coords):
@@ -210,13 +230,6 @@ class MainCharacter(MapPeredvizenie):
         self.inventory = Inventory(self)
         self.fight = None
 
-    def attack(self, x):
-        pass  # насчёт боя я вообще без понятия что делать... Думаю подрубить время и делать долгие анимации
-        # плюс к этому сделать все заготовки атаковалок(наскриншотить, поиграв в игру :D) и атаковалок врагов
-        # ну и враг представленный здесь - "Демон лицея" должен будет иметь 1 способность "Цикл while":
-        # "нужно не больше 3, наносит 1 урон и возвращает кубик" что сделает его сильным противником
-        # Да, как ты понял будем клепать отсылки на лицей, "Доработать!" и прочее)))
-
     def change_something(self, hp=0, exp=0, money=0, dices=0, rage=0, hp_max=0, dice_max=0):
         self.hp += hp
         self.exp += exp
@@ -232,12 +245,6 @@ class MainCharacter(MapPeredvizenie):
         else:
             self.map_coords = x, y
 
-    def inventory(self):
-        pass
-
-    def on_click(self, cell_coords):
-        pass
-
     def lvl_up(self, exp, money):
         self.exp += exp
         self.money += money
@@ -252,7 +259,7 @@ class MainCharacter(MapPeredvizenie):
         print(f'exp = {self.exp}, hp_max = {self.hp_max}')
         return True
 
-    def __next__(self):
+    def next1(self):
         self.dices = self.dice_max
 
 
@@ -448,7 +455,7 @@ class Weapons:
 
 class Fight(MapPeredvizenie):
     def __init__(self, character, enermy, board):
-        global active_file, cursor_bool
+        global active_file, cursor_bool, all_sprites
         cursor_bool = True
         self.lvl_map = board
         self.lvl_map.board[character.map_coords[1]][character.map_coords[0]] = '-'
@@ -477,10 +484,15 @@ class Fight(MapPeredvizenie):
                       [0, 0, 7, 6, 0, 0, 0, 0, 0]]
         active_file = self
         self.enermy_hod = False
+        all_sprites = pygame.sprite.Group()
+        all_sprites.add(Cursor(all_sprites))
 
     def render(self):
         if self.enermy.hp <= 0:
+            self.character.next1()
             screen.blit(self.win_image, (0, 0))
+        if self.character.hp <= 0:
+            screen.blit(self.win_image, (10, 0))
         else:
             screen.blit(self.fight_back, (0, 0))
             for x in range(9):
@@ -540,7 +552,7 @@ class Fight(MapPeredvizenie):
                             screen.blit(self.character.inventory.inventar[y][x].image,
                                         ((y + 1) * self.cell_size + self.left,
                                          (x + 1) * self.cell_size + self.top))
-            else:
+            elif self.enermy_hod:
                 for i in range(len(self.enermy.abilities)):
                     screen.blit(self.enermy.abilities[i].image,
                                 ((i + 1) * self.cell_size + self.left,
@@ -548,7 +560,7 @@ class Fight(MapPeredvizenie):
 
     def on_click(self, cell_coords):
         global active_file, files, count, all_sprites, dice, cursor_bool
-        if not cell_coords or self.enermy_hod:
+        if not cell_coords:
             return None
         if self.enermy.hp <= 0 and not self.first:
             self.first = True
@@ -569,21 +581,23 @@ class Fight(MapPeredvizenie):
             pygame.mouse.set_visible(True)
             active_file = files[0]
         y, x = cell_coords
-        if (y, x) == (4, 8):
-            self.next()
+        if self.enermy_hod:
+            if (x, y) == (8, 4):
+                pass
+            else:
+                return None
         if (x, y) in [(1, 1), (1, 2),
                       (2, 1), (2, 2),
                       (3, 1), (3, 2)]:
-            if count > 0:
+            if self.character.dices > 0:
                 if self.character.inventory.inventar[x - 1][y - 1] != 0:
                     if self.character.inventory.inventar[x - 1][y - 1].attack(dice):
                         self.enermy.hp -= self.character.inventory.inventar[x - 1][y - 1].attack(dice)
                         self.character.dices -= 1
-                        count -= 1
                         all_sprites = pygame.sprite.Group()
                         all_sprites.add(Cursor(all_sprites))
                     print(self.enermy.hp)
-            if count <= 0:
+            if self.character.dices <= 0:
                 all_sprites = pygame.sprite.Group()
                 pygame.mouse.set_visible(True)
         if (x, y) in [(5, 2), (5, 1)]:
@@ -591,12 +605,14 @@ class Fight(MapPeredvizenie):
                 all_sprites = pygame.sprite.Group()
                 all_sprites.add(Cursor(all_sprites))
             self.perebros_counter -= 1
+        if (x, y) == (8, 4):
+            self.next()
 
     def next(self):
         self.enermy_hod = not self.enermy_hod
-        next(self.character)
-        self.enermy.attack()
-        self.enermy.dices = self.enermy.dices_max
+        self.character.next1()
+        if self.enermy_hod:
+            self.enermy.attack(self.character)
 
 
 class Enemy_editor(Fight):
@@ -611,21 +627,16 @@ class Enemy_editor(Fight):
         self.money = money
         self.dices = dices
         self.dices_max = dices
+        self.attacked = False
+        self.dices_a = pygame.sprite.Group()
 
-    def change_something(self, hp=0, dices=0):
-        self.hp += hp
-        self.dices += dices
-
-    def attack(self):
+    def attack(self, character):
         for i in range(len(self.abilities)):
-            if self.vibor[i]:
-                Enemy_dices(0, 5, (i + 1, 2))
-
-    def inventory(self):
-        pass
-
-    def next(self):
-        pass
+            if bool(eval(f'{i} ' + self.vibor[i])):
+                a = Enemy_dices((i + 1, 1), self.dices_a)
+                character.hp -= self.abilities[i].attack(a.chislo)
+            else:
+                Enemy_dices((6, 1), self.dices_a)
 
 
 class Treasure_Chest:
@@ -637,6 +648,7 @@ class Treasure_Chest:
 
     def render(self):
         screen.blit(self.base, (0, 0))
+        screen.blit(self.treasure.image, (550, 250))
 
     def get_click(self, coords):
         global active_file
@@ -656,12 +668,10 @@ screen = pygame.display.set_mode(size)
 character = MainCharacter()
 a = 'lvl1.txt'
 a = Load_lvl(a).load_level()
-print(len(a), len(a[0]))
 map_1lvl = MapPeredvizenie(9, 5, character, a)
 inventory = Inventory(character)
 files = [map_1lvl, inventory]
 active_file = Menu()
-count = 2
 dice = 6
 # 10 - инвентарь
 # '@' - гг
@@ -742,8 +752,8 @@ class AnimatedCharacter(pygame.sprite.Sprite):
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
         self.rect = self.rect.move(x, y)
-        self.rect.x = 120 + 40
-        self.rect.y = 120 + 70
+        self.rect.x = y
+        self.rect.y = x
         self.vx = 0
         self.vy = 0
         self.purpose = (0, 0)
@@ -770,6 +780,7 @@ class AnimatedCharacter(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
     def go(self, coords):
+        print(1)
         self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
         if active_file.proverka((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120))):
             print('go!')
@@ -779,39 +790,42 @@ class AnimatedCharacter(pygame.sprite.Sprite):
             self.purpose = self.purpose = self.rect.x, self.rect.y
 
 
+def do_sprites():
+    global player_animation, animations
+    for y in range(len(files[0].board)):
+        for x in range(len(files[0].board[0])):
+            if type(files[0].board[y][x]) == int:
+                pass
+            elif files[0].board[y][x][:2] == '#E':
+                animations.append(
+                    AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x,
+                                70 + 120 * y))
+            elif files[0].board[y][x] == 'exit':
+                animations.append(AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * x, 70 + 120 * y))
+            elif files[0].board[y][x] == '@':
+                player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 70 + 120 * y, 40 + 120 * x)
+
+
 animations = []
-for y in range(len(files[0].board)):
-    for x in range(len(files[0].board[0])):
-        if type(files[0].board[y][x]) == int:
-            pass
-        elif files[0].board[y][x][:2] == '#E':
-            AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x, 70 + 120 * y)
-        elif files[0].board[y][x] == 'exit':
-            AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * x, 70 + 120 * y)
-        elif files[0].board[y][x] == '@':
-            player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 70 + 120 * y, 40 + 120 * x)
+do_sprites()
 
 
 class Enemy_dices(pygame.sprite.Sprite):
-    def __init__(self, x, y, purpose):
-        super().__init__(enemy_dices)
-        dice = self.chislo = random.randint(1, 6)
+    def __init__(self, purpose, group):
+        super().__init__(group)
+        self.chislo = random.randint(1, 6)
         image = load_image(f"{self.chislo}.png", -1)
+        self.purpose = purpose[0] * 120 + 40, purpose[1] * 120 + 70
         self.image = image
-        self.rect = self.image
-        self.x = 120 + 40
-        self.y = 120 + 70
-        self.vx = 0
-        self.vy = 0
-        self.purpose = (0, 0)
+        self.rect = self.image.get_rect()
+        self.rect.x = 120 * 7 + 40
+        self.rect.y = 120 * 1 + 70
+        self.vx = -15
 
     def update(self):
-        self.rect = self.rect.move(self.vx, self.vy)
-        if self.purpose == (self.x, self.y):
+        self.rect = self.rect.move(self.vx, 0)
+        if self.purpose == (self.rect.x, self.rect.y):
             self.vx = 0
-            self.vy = 0
-            return True
-        return False
 
     def go(self, coords):
         self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
@@ -851,25 +865,29 @@ while running:
             for i in all_sprites:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
-        if active_file == files[0] and keys[pygame.K_LEFT] and end_hod:
+        if type(active_file) == MapPeredvizenie and keys[pygame.K_LEFT] and end_hod:
+            print(2)
             player_animation.go((-1, 0))
             end_hod = False
-        elif active_file == files[0] and keys[pygame.K_RIGHT] and end_hod:
+        elif type(active_file) == MapPeredvizenie and keys[pygame.K_RIGHT] and end_hod:
             player_animation.go((1, 0))
             end_hod = False
-        elif active_file == files[0] and keys[pygame.K_UP] and end_hod:
+        elif type(active_file) == MapPeredvizenie and keys[pygame.K_UP] and end_hod:
             player_animation.go((0, -1))
             end_hod = False
-        elif active_file == files[0] and keys[pygame.K_DOWN] and end_hod:
+        elif type(active_file) == MapPeredvizenie and keys[pygame.K_DOWN] and end_hod:
             player_animation.go((0, 1))
             end_hod = False
-    if active_file == files[0]:
+    if type(active_file) == MapPeredvizenie:
         map_sprites.update()
         map_sprites.draw(screen)
         character_sprite.update()
         character_sprite.draw(screen)
     if pygame.mouse.get_focused():
         all_sprites.draw(screen)
+    if type(active_file) == Fight and active_file.enermy_hod:
+        active_file.enermy.dices_a.draw(screen)
+        active_file.enermy.dices_a.update()
     pygame.display.flip()
     clock.tick(10)
 pygame.quit()
