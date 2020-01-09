@@ -8,6 +8,7 @@ from lvl_constructor import Load_lvl
 global active_file, running, files, count, all_sprites, dice, cursor_bool, lvl_number
 
 lvl_number = 1
+new_world = True
 
 
 def load_image(name, colorkey=None):
@@ -46,7 +47,9 @@ class Menu:
 
 
 class MapPeredvizenie:
-    def __init__(self, width, height, char, map=0):
+    def __init__(self, width, height, char, map):
+        global end_hod
+        end_hod = True
         self.width, self.height = 1200, 675
         self.char = char
         for i in range(len(map)):
@@ -68,6 +71,7 @@ class MapPeredvizenie:
         self.hardbass1 = pygame.image.load('hardbass1.png')  # эти два изображения не используются,
         # т.к. я плохо шарю во времени в питон. Но когда разберусь, сделаю героя танцующего хардбасс
         self.hardbass2 = pygame.image.load('hardbass2.png')
+        self.torg = pygame.image.load('map_torg.jpg')
         self.width = width
         self.height = height
         self.left = 40
@@ -95,6 +99,10 @@ class MapPeredvizenie:
                                      y * self.cell_size + self.top))
                     elif self.board[y][x][:2] == '#T':
                         screen.blit(self.treasures_image,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 'torgovec':
+                        screen.blit(self.torg,
                                     (x * self.cell_size + self.left,
                                      y * self.cell_size + self.top))
                 elif self.board[y][x] == 3:
@@ -148,7 +156,7 @@ class MapPeredvizenie:
 
     def proverka(self, cell_coords):
         global lvl_number, active_file, files, all_sprites, map_sprites, enemy_dices, \
-            character_sprite, animations, player_animation, end_hod
+            character_sprite, animations, player_animation, end_hod, new_world
         y, x = cell_coords
         ex, ey = self.char.map_coords
         well_coords = [(ey + 1, ex),
@@ -171,6 +179,8 @@ class MapPeredvizenie:
             self.char.map_coords = (x, y)
         elif self.board[y][x] == '-':
             self.char.map_coords = (x, y)
+        elif type(self.board[y][x]) == int:
+            return False
         elif self.board[y][x][:2] == '#T':
             self.char.map_coords = (x, y)
             treasure = self.board[y][x][2:-1].split(', ')
@@ -182,10 +192,13 @@ class MapPeredvizenie:
             self.board[y][x] = '-'
             print(f'fight! {enemy}')
             Fight(self.char, enemy, self)
+        elif self.board[y][x] == 'torgovec':
+            Torgovec()
         elif self.board[y][x] == 'exit':
             lvl_number += 1
             new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
-            files[0] = MapPeredvizenie(9, 5, character, new_map)
+            files[0] = MapPeredvizenie(9, 5, self.char, new_map)
+            end_hod = True
             for i in animations:
                 i.kill()
             player_animation.kill()
@@ -197,7 +210,8 @@ class MapPeredvizenie:
             do_sprites()
             end_hod = True
             active_file = files[0]
-
+            new_world = True
+            return False
         return True
 
     def on_click(self, cell_coords):
@@ -227,7 +241,6 @@ class MainCharacter(MapPeredvizenie):
         self.exp = 0
         self.lvl_up_xp = 4
         self.rage = 0
-        self.inventory = Inventory(self)
         self.fight = None
 
     def change_something(self, hp=0, exp=0, money=0, dices=0, rage=0, hp_max=0, dice_max=0):
@@ -362,6 +375,7 @@ class Inventory(MapPeredvizenie):
                                  x * self.cell_size + self.top))
 
     def on_click(self, cell_coords):
+        print(self.inventar)
         if not cell_coords:
             self.waiting = False
             return False
@@ -427,14 +441,42 @@ class Inventory(MapPeredvizenie):
 
 
 class Torgovec(MapPeredvizenie):
-    def __init__(self, assortiment, cena):
+    def __init__(self, assortiment=0, cena=0):
         global active_file
         active_file = self
-        self.assortiment = assortiment
-        self.cena = cena
+        self.assortiment = [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
+                            Weapons(lambda x: x, 'hammer.png', lambda x: x),
+                            Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]
+        self.cena = '123'
+        self.back_image = load_image('torgovec.png')
+        self.board = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 7, 6, 0, 0, 9, 10, 0]]
+        self.cell_size = 120
+        self.left = 40
+        self.top = 70
+        self.width, self.height = 1200, 675
+
+    def render(self):
+        screen.blit(self.back_image, (0, 0))
+        for x in range(9):
+            for y in range(5):
+                if self.board[y][x] == 1:
+                    pass
+        count = 0
+        for i in self.assortiment:
+            count += 2
+            screen.blit(i.image,
+                        (count * self.cell_size + 120, self.cell_size))
+        # font = pygame.font.Font(None, 25)
+        # text = font.render(f"{self.char.hp}/{self.char.hp_max}", 1, (255, 255, 255))
+        # screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
+        #               y * self.cell_size + self.top + self.cell_size // 2))
 
     def on_click(self, cell_coords):
-        pass  # Я УСТАЛ
+        pass  # Я УСТАЛ, ДА ВСЁ ЕЩЁ
 
 
 class Weapons:
@@ -546,10 +588,11 @@ class Fight(MapPeredvizenie):
                                       self.top + y * self.cell_size,
                                       self.cell_size, self.cell_size), 1)
             if not self.enermy_hod:
+                global files
                 for x in range(2):
                     for y in range(3):
-                        if self.character.inventory.inventar[y][x] != 0:
-                            screen.blit(self.character.inventory.inventar[y][x].image,
+                        if files[1].inventar[y][x] != 0:
+                            screen.blit(files[1].inventar[y][x].image,
                                         ((y + 1) * self.cell_size + self.left,
                                          (x + 1) * self.cell_size + self.top))
             elif self.enermy_hod:
@@ -590,9 +633,9 @@ class Fight(MapPeredvizenie):
                       (2, 1), (2, 2),
                       (3, 1), (3, 2)]:
             if self.character.dices > 0:
-                if self.character.inventory.inventar[x - 1][y - 1] != 0:
-                    if self.character.inventory.inventar[x - 1][y - 1].attack(dice):
-                        self.enermy.hp -= self.character.inventory.inventar[x - 1][y - 1].attack(dice)
+                if files[1].inventar[x - 1][y - 1] != 0:
+                    if files[1].inventar[x - 1][y - 1].attack(dice):
+                        self.enermy.hp -= files[1].inventar[x - 1][y - 1].attack(dice)
                         self.character.dices -= 1
                         all_sprites = pygame.sprite.Group()
                         all_sprites.add(Cursor(all_sprites))
@@ -613,6 +656,10 @@ class Fight(MapPeredvizenie):
         self.character.next1()
         if self.enermy_hod:
             self.enermy.attack(self.character)
+        else:
+            self.enermy.dices_a = pygame.sprite.Group()
+            all_sprites = pygame.sprite.Group()
+            all_sprites.add(Cursor(all_sprites))
 
 
 class Enemy_editor(Fight):
@@ -853,6 +900,9 @@ end_hod = True
 while running:
     active_file.render()
     for event in pygame.event.get():
+        if new_world:
+            end_hod = True
+            new_world = False
         keys = pygame.key.get_pressed()
         if event.type == pygame.QUIT:
             running = False
@@ -866,7 +916,6 @@ while running:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
         if type(active_file) == MapPeredvizenie and keys[pygame.K_LEFT] and end_hod:
-            print(2)
             player_animation.go((-1, 0))
             end_hod = False
         elif type(active_file) == MapPeredvizenie and keys[pygame.K_RIGHT] and end_hod:
