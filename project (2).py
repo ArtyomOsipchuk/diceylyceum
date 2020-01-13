@@ -196,7 +196,12 @@ class MapPeredvizenie:
             Torgovec()
         elif self.board[y][x] == 'exit':
             lvl_number += 1
-            new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
+            if lvl_number == 1:
+                new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
+            if lvl_number == 2:
+                new_map = Load_lvl(f'lvl{lvl_number}_{random.randint(1, 3)}.txt').load_level()
+            if lvl_number == 3:
+                new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             files[0] = MapPeredvizenie(9, 5, self.char, new_map)
             end_hod = True
             for i in animations:
