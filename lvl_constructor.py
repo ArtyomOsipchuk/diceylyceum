@@ -6,6 +6,8 @@ class Load_lvl:
         for line in level_map:
             a = []
             for i in line:
+                if i == '':
+                    continue
                 if i in '0123456789':
                     i = int(i)
                 a.append(i)

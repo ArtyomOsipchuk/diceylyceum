@@ -190,7 +190,6 @@ class MapPeredvizenie:
             self.char.map_coords = (x, y)
             enemy = self.board[y][x][2:]
             self.board[y][x] = '-'
-            print(f'fight! {enemy}')
             Fight(self.char, enemy, self)
         elif self.board[y][x] == 'torgovec':
             Torgovec()
@@ -522,8 +521,15 @@ class Fight(MapPeredvizenie):
         self.bars = pygame.image.load('bars.png')
         self.char = pygame.image.load('char.png')
         self.perebros = pygame.image.load('perebros.png')
+        editor = enermy.split(', ')
+        picture2, hp, max_hp, exp, strategy = [i for i in editor[1:-2]], editor[-1]
+        abilities = []
+        for i in editor[7].split(')'):
+            i = i.split('(')
+            abilities.append(Weapons(eval(f'lambda x: {i[0]}'), i[1], eval(f'lambda x: {i[2]}')))
+        print(abilities)
         self.enermy = Enemy_editor(*[int(i) for i in enermy.split(', ')[2:]])
-        self.enermy_image = load_image(enermy.split(', ')[1])
+        self.enermy_image = load_image(picture2)
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -538,8 +544,10 @@ class Fight(MapPeredvizenie):
         if self.enermy.hp <= 0:
             self.character.next1()
             screen.blit(self.win_image, (0, 0))
+            return None
         if self.character.hp <= 0:
             screen.blit(self.win_image, (10, 0))
+            return None
         else:
             screen.blit(self.fight_back, (0, 0))
             for x in range(9):
@@ -630,10 +638,15 @@ class Fight(MapPeredvizenie):
             active_file = files[0]
         y, x = cell_coords
         if self.enermy_hod:
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
             if (x, y) == (8, 4):
                 pass
             else:
                 return None
+        if self.character.dices <= 0:
+            all_sprites = pygame.sprite.Group()
+            pygame.mouse.set_visible(True)
         if (x, y) in [(1, 1), (1, 2),
                       (2, 1), (2, 2),
                       (3, 1), (3, 2)]:
@@ -642,14 +655,15 @@ class Fight(MapPeredvizenie):
                     if files[1].inventar[x - 1][y - 1].attack(dice):
                         self.enermy.hp -= files[1].inventar[x - 1][y - 1].attack(dice)
                         self.character.dices -= 1
-                        all_sprites = pygame.sprite.Group()
-                        all_sprites.add(Cursor(all_sprites))
-                    print(self.enermy.hp)
+                        if self.character.dices == 0:
+                            cursor_bool = False
+                        else:
+                            all_sprites = pygame.sprite.Group()
+                            all_sprites.add(Cursor(all_sprites))
             if self.character.dices <= 0:
-                all_sprites = pygame.sprite.Group()
-                pygame.mouse.set_visible(True)
+                cursor_bool = False
         if (x, y) in [(5, 2), (5, 1)]:
-            if self.perebros_counter > 0:
+            if self.perebros_counter > 0 and self.character.dices > 0:
                 all_sprites = pygame.sprite.Group()
                 all_sprites.add(Cursor(all_sprites))
             self.perebros_counter -= 1
@@ -657,22 +671,25 @@ class Fight(MapPeredvizenie):
             self.next()
 
     def next(self):
+        global cursor_bool, all_sprites
         self.enermy_hod = not self.enermy_hod
         self.character.next1()
         if self.enermy_hod:
+            cursor_bool = False
             self.enermy.attack(self.character)
         else:
             self.enermy.dices_a = pygame.sprite.Group()
             all_sprites = pygame.sprite.Group()
             all_sprites.add(Cursor(all_sprites))
+            cursor_bool = True
 
 
 class Enemy_editor(Fight):
-    def __init__(self, hp, hp_max, exp, money, dices, abilities=0, vibor=0):
+    def __init__(self, hp, hp_max, exp, money, dices, abilities, vibor):
         self.abilities = [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
                           Weapons(lambda x: x, 'hammer.png', lambda x: x),
                           Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]
-        self.vibor = '>= 3;< 2;== 6'.split(';')
+        self.vibor = vibor.split()
         self.hp = hp
         self.hp_max = hp_max
         self.exp = exp
@@ -707,6 +724,20 @@ class Treasure_Chest:
         if 745 >= coords[0] >= 545 and coords[1] >= 500:
             files[1].hranenie(self.treasure)
             active_file = files[0]
+
+
+class BossFight(Fight):
+    def __init__(self):
+        super().__init__(self)
+        pass
+
+    def attack(self, character):
+        for i in range(len(self.abilities)):
+            if bool(eval(f'{i} ' + self.vibor[i])):
+                a = Enemy_dices((i + 1, 1), self.dices_a)
+                character.hp -= self.abilities[i].attack(a.chislo)
+            else:
+                Enemy_dices((6, 1), self.dices_a)
 
 
 pygame.init()
@@ -853,9 +884,9 @@ def do_sprites():
                     AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x,
                                 70 + 120 * y))
             elif files[0].board[y][x] == 'exit':
-                animations.append(AnimatedMap(load_image("exit_gif.png"), 2, 1, 40 + 120 * x, 70 + 120 * y))
+                animations.append(AnimatedMap(load_image("exit_gif.png", -1), 2, 1, 40 + 120 * x, 70 + 120 * y))
             elif files[0].board[y][x] == '@':
-                player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 70 + 120 * y, 40 + 120 * x)
+                player_animation = AnimatedCharacter(load_image("dance_gif.png", -1), 2, 1, 70 + 120 * y, 40 + 120 * x)
 
 
 animations = []
@@ -920,6 +951,9 @@ while running:
             for i in all_sprites:
                 if pygame.mouse.get_focused():
                     i.get_event(event.pos)
+        if event.type == pygame.MOUSEMOTION and type(active_file) == Fight and not cursor_bool:
+            pygame.mouse.set_visible(True)
+            all_sprites = pygame.sprite.Group()
         if type(active_file) == MapPeredvizenie and keys[pygame.K_LEFT] and end_hod:
             player_animation.go((-1, 0))
             end_hod = False
