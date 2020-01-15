@@ -558,7 +558,7 @@ class Fight(MapPeredvizenie):
         elif bossfight:
             self.enermy = Enemy_editor(62, '∞', 1000, 10, 2)
             self.enermy_image = load_image(
-                'battle_enemy.png')  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                'boss_enemy.png')  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -714,7 +714,7 @@ class Fight(MapPeredvizenie):
     def next(self):
         global cursor_bool, all_sprites
         self.perebros_counter = 3
-        self.enermy_hod = not self.enermy_hodя
+        self.enermy_hod = not self.enermy_hod
         self.character.next1()
         if self.enermy_hod:
             cursor_bool = False
