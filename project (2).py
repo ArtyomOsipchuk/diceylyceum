@@ -714,7 +714,7 @@ class Fight(MapPeredvizenie):
     def next(self):
         global cursor_bool, all_sprites
         self.perebros_counter = 3
-        self.enermy_hod = not self.enermy_hod
+        self.enermy_hod = not self.enermy_hodя
         self.character.next1()
         if self.enermy_hod:
             cursor_bool = False
