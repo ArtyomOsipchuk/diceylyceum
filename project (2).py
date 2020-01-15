@@ -48,6 +48,7 @@ class Menu:
 
 class MapPeredvizenie:
     def __init__(self, width, height, char, map):
+        print([len(i) for i in map])
         global end_hod
         end_hod = True
         self.width, self.height = 1200, 675
@@ -522,13 +523,18 @@ class Fight(MapPeredvizenie):
         self.char = pygame.image.load('char.png')
         self.perebros = pygame.image.load('perebros.png')
         editor = enermy.split(', ')
-        picture2, hp, max_hp, exp, strategy = [i for i in editor[1:-2]], editor[-1]
+        picture2, hp, hp_max, money, exp, dices = editor[1], \
+                                           int(editor[2]), \
+                                           int(editor[3]), \
+                                           int(editor[4]), \
+                                           int(editor[5]),\
+                                           int(editor[6])
+        strategy = editor[8]
         abilities = []
         for i in editor[7].split(')'):
             i = i.split('(')
             abilities.append(Weapons(eval(f'lambda x: {i[0]}'), i[1], eval(f'lambda x: {i[2]}')))
-        print(abilities)
-        self.enermy = Enemy_editor(*[int(i) for i in enermy.split(', ')[2:]])
+        self.enermy = Enemy_editor(hp, hp_max, exp, money, dices, abilities, strategy)
         self.enermy_image = load_image(picture2)
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
@@ -689,7 +695,11 @@ class Enemy_editor(Fight):
         self.abilities = [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
                           Weapons(lambda x: x, 'hammer.png', lambda x: x),
                           Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]
-        self.vibor = vibor.split()
+        self.vibor = []
+
+        for i in range(0, len(vibor.split()), 2):
+            self.vibor.append(vibor.split()[i] + ' ' + vibor.split()[i + 1])
+        print(self.vibor)
         self.hp = hp
         self.hp_max = hp_max
         self.exp = exp
@@ -700,9 +710,10 @@ class Enemy_editor(Fight):
         self.dices_a = pygame.sprite.Group()
 
     def attack(self, character):
-        for i in range(len(self.abilities)):
-            if bool(eval(f'{i} ' + self.vibor[i])):
-                a = Enemy_dices((i + 1, 1), self.dices_a)
+        for i in range(0, len(self.abilities), 2):
+            a = Enemy_dices((i + 1, 1), self.dices_a)
+            if bool(eval(str(a.chislo) + self.vibor[i])):
+                a.kill()
                 character.hp -= self.abilities[i].attack(a.chislo)
             else:
                 Enemy_dices((6, 1), self.dices_a)
@@ -712,7 +723,7 @@ class Treasure_Chest:
     def __init__(self, treasure):
         global active_file
         active_file = self
-        self.treasure = treasure  # объект Weapon
+        self.treasure = treasure
         self.base = pygame.image.load('treasure_open.jpg')
 
     def render(self):
