@@ -5,10 +5,11 @@ import os
 
 from lvl_constructor import Load_lvl
 
-global active_file, running, files, count, all_sprites, dice, cursor_bool, lvl_number
+global active_file, running, files, count, all_sprites, dice, cursor_bool, lvl_number, bossfight, endgame_Fall, endgame_Win
 
 lvl_number = 1
 new_world = True
+bossfight = False
 
 
 def load_image(name, colorkey=None):
@@ -73,6 +74,7 @@ class MapPeredvizenie:
         # т.к. я плохо шарю во времени в питон. Но когда разберусь, сделаю героя танцующего хардбасс
         self.hardbass2 = pygame.image.load('hardbass2.png')
         self.torg = pygame.image.load('map_torg.jpg')
+        self.menu_pannel = pygame.image.load('menu_pannel.png')
         self.width = width
         self.height = height
         self.left = 40
@@ -86,6 +88,10 @@ class MapPeredvizenie:
         for x in range(self.width):
             for y in range(self.height):
                 if not type(self.board[y][x]) == int:
+                    if self.board[y][x] == '+':
+                        screen.blit(self.menu_pannel,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
                     if self.board[y][x][:1] == '#E':
                         screen.blit(self.enermy_image,
                                     (x * self.cell_size + self.left,
@@ -187,15 +193,19 @@ class MapPeredvizenie:
             treasure = self.board[y][x][2:-1].split(', ')
             self.board[y][x] = '-'
             Treasure_Chest(Weapons(*treasure))
-        elif self.board[y][x][:2] == '#E':
+        elif self.board[y][x][:2] == '#E' or self.board[y][x][:2] == '#B':
             self.char.map_coords = (x, y)
             enemy = self.board[y][x][2:]
+            if self.board[y][x][:2] == '#B':
+                global bossfight
+                bossfight = True
+                enemy = 'Boss!'
             self.board[y][x] = '-'
             Fight(self.char, enemy, self)
         elif self.board[y][x] == 'torgovec':
             Torgovec()
         elif self.board[y][x] == 'exit':
-            lvl_number += 1
+            lvl_number += 2
             if lvl_number == 1:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             if lvl_number == 2:
@@ -312,13 +322,14 @@ class Inventory(MapPeredvizenie):
                       [1, 1, 1, 1, 0, 0, 0, 0, 0],
                       [1, 1, 1, 1, 0, 0, 1, 1, 1],
                       [1, 1, 1, 1, 0, 0, 1, 1, 1],
-                      [0, 0, 7, 6, 0, 0, 9, 10, 0]]
+                      ['+', '+', 7, 6, '+', '+', 9, 10, '+']]
         self.quit_game = pygame.image.load('quitgame.png')
         self.bars = pygame.image.load('bars.png')
         self.character = pygame.image.load('char.png')
         self.inventorybtn = pygame.image.load('inventorybtn.png')
         self.inventory = pygame.image.load('inventory.png')
         self.inventorycell = pygame.image.load('inventory_cell.png')
+        self.menu_pannel = pygame.image.load('menu_pannel.png')
 
     def render(self):
         screen.blit(self.inventory, (0, 0))
@@ -326,6 +337,11 @@ class Inventory(MapPeredvizenie):
             pygame.draw.circle(screen, (255, 0, 0), (600, 50), 45, 5)
         for x in range(9):
             for y in range(5):
+
+                if self.board[y][x] == '+':
+                    screen.blit(self.menu_pannel,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
                 if self.board[y][x] == 6:
                     screen.blit(self.bars,
                                 (x * self.cell_size + self.left,
@@ -522,25 +538,32 @@ class Fight(MapPeredvizenie):
         self.bars = pygame.image.load('bars.png')
         self.char = pygame.image.load('char.png')
         self.perebros = pygame.image.load('perebros.png')
-        editor = enermy.split(', ')
-        picture2, hp, hp_max, money, exp, dices = editor[1], \
-                                           int(editor[2]), \
-                                           int(editor[3]), \
-                                           int(editor[4]), \
-                                           int(editor[5]),\
-                                           int(editor[6])
-        strategy = editor[8]
-        abilities = []
-        for i in editor[7].split(')'):
-            i = i.split('(')
+        self.nextturn = pygame.image.load('nextturn.png')
+        self.menu_pannel = pygame.image.load('menu_pannel.png')
+        if not bossfight:
+            editor = enermy.split(', ')
+            picture2, hp, hp_max, money, exp, dices = editor[1], \
+                                                      int(editor[2]), \
+                                                      int(editor[3]), \
+                                                      int(editor[4]), \
+                                                      int(editor[5]), \
+                                                      int(editor[6])
+            strategy = editor[8]
+            abilities = []
+            for i in editor[7].split(')'):
+                i = i.split('(')
             abilities.append(Weapons(eval(f'lambda x: {i[0]}'), i[1], eval(f'lambda x: {i[2]}')))
-        self.enermy = Enemy_editor(hp, hp_max, exp, money, dices, abilities, strategy)
-        self.enermy_image = load_image(picture2)
+            self.enermy = Enemy_editor(hp, hp_max, exp, money, dices, abilities, strategy)
+            self.enermy_image = load_image(picture2)
+        elif bossfight:
+            self.enermy = Enemy_editor(62, '∞', 1000, 10, 2)
+            self.enermy_image = load_image(
+                'battle_enemy.png')  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 7, 6, 0, 0, 0, 0, 0]]
+                      [0, 0, 7, 6, '+', '+', '+', '+', 0]]
         active_file = self
         self.enermy_hod = False
         all_sprites = pygame.sprite.Group()
@@ -550,15 +573,25 @@ class Fight(MapPeredvizenie):
         if self.enermy.hp <= 0:
             self.character.next1()
             screen.blit(self.win_image, (0, 0))
+            if bossfight and endgame_Win:
+                # active_file = Win()
+                active_file = Menu()
             return None
         if self.character.hp <= 0:
             screen.blit(self.win_image, (10, 0))
+            if bossfight and endgame_Fall:
+                active_file = Menu()
             return None
         else:
             screen.blit(self.fight_back, (0, 0))
             for x in range(9):
                 for y in range(5):
-                    if self.board[y][x] == 2:
+
+                    if self.board[y][x] == '+':
+                        screen.blit(self.menu_pannel,
+                                    (x * self.cell_size + self.left,
+                                     y * self.cell_size + self.top))
+                    elif self.board[y][x] == 2:
                         screen.blit(self.enermy_image,
                                     (x * self.cell_size + self.left,
                                      y * self.cell_size + self.top))
@@ -602,10 +635,6 @@ class Fight(MapPeredvizenie):
                         screen.blit(self.quit_game,
                                     (x * self.cell_size + self.left,
                                      y * self.cell_size + self.top))
-                    pygame.draw.rect(screen, (0, 0, 0),
-                                     (self.left + x * self.cell_size,
-                                      self.top + y * self.cell_size,
-                                      self.cell_size, self.cell_size), 1)
             if not self.enermy_hod:
                 global files
                 for x in range(2):
@@ -619,6 +648,12 @@ class Fight(MapPeredvizenie):
                     screen.blit(self.enermy.abilities[i].image,
                                 ((i + 1) * self.cell_size + self.left,
                                  1 * self.cell_size + self.top))
+            if bossfight and self.enermy_hod:
+                font = pygame.font.Font(None, 25)
+                text = font.render(f"{self.enermy.schetchik}", 1, (0, 0, 0))
+                screen.blit(text, (1 * self.cell_size + self.left + 50,
+                                   1 * self.cell_size + self.top + 50))
+            screen.blit(self.nextturn, (8 * self.cell_size + self.left, 4 * self.cell_size + self.top))
 
     def on_click(self, cell_coords):
         global active_file, files, count, all_sprites, dice, cursor_bool
@@ -678,6 +713,7 @@ class Fight(MapPeredvizenie):
 
     def next(self):
         global cursor_bool, all_sprites
+        self.perebros_counter = 3
         self.enermy_hod = not self.enermy_hod
         self.character.next1()
         if self.enermy_hod:
@@ -689,17 +725,19 @@ class Fight(MapPeredvizenie):
             all_sprites.add(Cursor(all_sprites))
             cursor_bool = True
 
+    def dorabotat(self):
+        global endgame_Fall
+        endgame_False = True
+
 
 class Enemy_editor(Fight):
-    def __init__(self, hp, hp_max, exp, money, dices, abilities, vibor):
-        self.abilities = [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
-                          Weapons(lambda x: x, 'hammer.png', lambda x: x),
-                          Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]
+    def __init__(self, hp, hp_max, exp, money, dices, abilities=0, vibor=0):
+        if abilities:
+            self.abilities = abilities
         self.vibor = []
-
-        for i in range(0, len(vibor.split()), 2):
-            self.vibor.append(vibor.split()[i] + ' ' + vibor.split()[i + 1])
-        print(self.vibor)
+        if vibor:
+            for i in range(0, len(vibor.split()), 2):
+                self.vibor.append(vibor.split()[i] + ' ' + vibor.split()[i + 1])
         self.hp = hp
         self.hp_max = hp_max
         self.exp = exp
@@ -708,15 +746,35 @@ class Enemy_editor(Fight):
         self.dices_max = dices
         self.attacked = False
         self.dices_a = pygame.sprite.Group()
+        if bossfight:
+            self.abilities = Weapons(lambda x: x, 'dorabotat.png', lambda x: x), Weapons(lambda x: x, 'bossheal.png',
+                                                                                         lambda x: x)
+            self.schetchik = 99
 
     def attack(self, character):
-        for i in range(0, len(self.abilities), 2):
-            a = Enemy_dices((i + 1, 1), self.dices_a)
-            if bool(eval(str(a.chislo) + self.vibor[i])):
-                a.kill()
-                character.hp -= self.abilities[i].attack(a.chislo)
-            else:
-                Enemy_dices((6, 1), self.dices_a)
+        if not bossfight:
+            print('not boss(')
+            for i in range(0, len(self.abilities), 2):
+                a = Enemy_dices((i + 1, 1), self.dices_a)
+                if bool(eval(str(a.chislo) + self.vibor[i])):
+                    a.kill()
+                    character.hp -= self.abilities[i].attack(a.chislo)
+                else:
+                    Enemy_dices((6, 1), self.dices_a)
+        else:
+            print('boss!')
+            for i in range(4):
+                a = random.randint(1, 6)
+                if a > 3:
+                    Enemy_dices((1, 1), self.dices_a, a)
+                    if self.schetchik - a <= 0:
+                        self.schetchik = 0
+                    self.schetchik -= a
+                    if self.schetchik <= 0:
+                        self.dorabotat()
+                elif a < 4:
+                    Enemy_dices((2, 1), self.dices_a, a)
+                    self.hp += a
 
 
 class Treasure_Chest:
@@ -890,7 +948,7 @@ def do_sprites():
         for x in range(len(files[0].board[0])):
             if type(files[0].board[y][x]) == int:
                 pass
-            elif files[0].board[y][x][:2] == '#E':
+            elif files[0].board[y][x][:2] == '#E' or files[0].board[y][x] == '#Bossfight':
                 animations.append(
                     AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x,
                                 70 + 120 * y))
@@ -905,9 +963,12 @@ do_sprites()
 
 
 class Enemy_dices(pygame.sprite.Sprite):
-    def __init__(self, purpose, group):
+    def __init__(self, purpose, group, chislo=0):
         super().__init__(group)
-        self.chislo = random.randint(1, 6)
+        if chislo:
+            self.chislo = chislo
+        else:
+            self.chislo = random.randint(1, 6)
         image = load_image(f"{self.chislo}.png", -1)
         self.purpose = purpose[0] * 120 + 40, purpose[1] * 120 + 70
         self.image = image
@@ -929,6 +990,11 @@ class Enemy_dices(pygame.sprite.Sprite):
             self.vy = 5 * coords[1]
         else:
             self.purpose = self.rect.x, self.rect.y
+
+
+class Win:
+    def __init__(self):
+        pass
 
 
 # player_animation = AnimatedCharacter(load_image("dance_gif.png"), 2, 1, 40 + 120, 70 + 120)
