@@ -1,5 +1,4 @@
 import pygame
-import copy
 import random
 import os
 
@@ -82,6 +81,27 @@ class MapPeredvizenie:
         self.cell_size = 120
         self.inventory_true = False
         self.fight = False
+
+    def restart(self):
+        global end_hod, map_sprites, character_sprite, enemy_dices, new_world, active_file, files
+        active_file = Menu()
+        new_map = Load_lvl(f'lvl1.txt').load_level()
+        self.char.hp = self.char.hp_max
+        self.char.money = 0
+        self.char.dices = 2
+        files[0] = MapPeredvizenie(9, 5, self.char, new_map)
+        end_hod = True
+        for i in animations:
+            i.kill()
+        player_animation.kill()
+        all_sprites = pygame.sprite.Group()
+        pygame.mouse.set_visible(True)
+        map_sprites = pygame.sprite.Group()
+        character_sprite = pygame.sprite.Group()
+        enemy_dices = pygame.sprite.Group()
+        do_sprites()
+        end_hod = True
+        new_world = True
 
     def render(self):
         screen.blit(self.back, (0, 0))
@@ -170,7 +190,9 @@ class MapPeredvizenie:
                        (ey - 1, ex),
                        (ey, ex + 1),
                        (ey, ex - 1)]
-        if (cell_coords not in well_coords) or (self.board[y][x] == 0):
+        if not (-1 < cell_coords[1] < 9 and -1 < cell_coords[0] < 5):
+            return False
+        if (cell_coords not in well_coords) or (self.board[y][x] == 0) or not cell_coords:
             return False
         if self.board[y][x] == 3:
             self.char.map_coords = (x, y)
@@ -204,13 +226,14 @@ class MapPeredvizenie:
             Fight(self.char, enemy, self)
         elif self.board[y][x] == 'torgovec':
             self.board[y][x] = '-'
+            self.char.map_coords = (x, y)
             Torgovec()
         elif self.board[y][x] == 'exit':
-            lvl_number += 2
+            lvl_number += 1
             if lvl_number == 1:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             if lvl_number == 2:
-                new_map = Load_lvl(f'lvl{lvl_number}_{1}.txt').load_level()
+                new_map = Load_lvl(f'lvl{lvl_number}_{random.randint(1, 3)}.txt').load_level()
             if lvl_number == 3:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             files[0] = MapPeredvizenie(9, 5, self.char, new_map)
@@ -300,16 +323,15 @@ class Inventory(MapPeredvizenie):
                           Weapons(lambda x: x, 'hammer.png', lambda x: x)],
                          [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
                           Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
-                         [Weapons(lambda x: x, 'sword.png', lambda x: x),
+                         [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
                           Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
         # ,
         #                       [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
         #                       Weapons(lambda x: x, 'hammer.png', lambda x: x)],
         #                     [Weapons(lambda x: x <= 3 , 'dopp.png', lambda x: x * 2),
-        #                      Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3)],
+        #                      Weapons(lambda x: x, 'sword.png', lambda x: x)],
         #                      [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
         #                     Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
-
         self.backpack = [[0, 0, 0, 0],
                          [0, 0, 0, 0],
                          [0, 0, 0, 0],
@@ -464,48 +486,74 @@ class Inventory(MapPeredvizenie):
 
 
 class Torgovec(MapPeredvizenie):
-    def __init__(self, assortiment=0, cena=0):
+    def __init__(self):
         global active_file
         active_file = self
-        self.assortiment = [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
-                            Weapons(lambda x: x, 'hammer.png', lambda x: x),
+        self.assortiment = [Weapons(lambda x: x, 'sword+.png', lambda x: x),
                             Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x)]
-        self.cena = '123'
+        self.cena = '43'
         self.back_image = load_image('torgovec.png')
         self.board = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 1, 0, 1, 0, 0, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 7, 6, 0, 0, 9, 10, 0]]
+                      [2, 0, 0, 2, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 9, 10]]
         self.cell_size = 120
         self.left = 40
-        self.top = 70
+        self.top = 60
         self.width, self.height = 1200, 675
+        self.quit_game = pygame.image.load('quitgame.png')
+        self.bars = pygame.image.load('bars.png')
+        self.character = pygame.image.load('char.png')
+        self.goaway = pygame.image.load('goaway.png')
 
     def render(self):
         screen.blit(self.back_image, (0, 0))
+        count = 0
         for x in range(9):
             for y in range(5):
-                if self.board[y][x] == 1:
-                    pass
-        count = 0
+                if self.board[y][x] == 9:
+                    screen.blit(self.goaway,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 10:
+                    screen.blit(self.quit_game,
+                                (x * self.cell_size + self.left,
+                                 y * self.cell_size + self.top))
+                elif self.board[y][x] == 2:
+                    if files[0].char.money < int(self.cena[count]):
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"Not enough money", 1, (255, 255, 0))
+                        screen.blit(text, (x * self.cell_size + self.left + 97,
+                                           y * self.cell_size + self.top + 89))
+                    else:
+                        font = pygame.font.Font(None, 25)
+                        text = font.render(f"Buy for {self.cena[count]} gold", 1, (255, 255, 0))
+                        screen.blit(text, (x * self.cell_size + self.left + 97,
+                                           y * self.cell_size + self.top + 89))
+                    count += 1
+
+        count = -3
         for i in self.assortiment:
-            count += 2
-            screen.blit(i.image,
-                        (count * self.cell_size + 120, self.cell_size))
-        # font = pygame.font.Font(None, 25)
-        # text = font.render(f"{self.char.hp}/{self.char.hp_max}", 1, (255, 255, 255))
-        # screen.blit(text, (x * self.cell_size + self.left + self.cell_size // 2,
-        #               y * self.cell_size + self.top + self.cell_size // 2))
+            count += 3
+        screen.blit(pygame.transform.scale(i.image, (240, 240)),
+                    (count * self.cell_size + 120, self.cell_size + 70))
 
     def on_click(self, cell_coords):
-        global active_file
-        print(cell_coords)
+        global active_file, files
         if not cell_coords:
-            return None
-        x, y = cell_coords
-        if x == 0 and y == 0:
+            return False
+        y, x = cell_coords
+        if cell_coords in [(4, 0), (4, 1), (4, 2)]:
+            files[1].hranenie(self.assortiment[0])
+            files[0].char.money -= self.cena[0]
+        elif cell_coords in [(4, 3), (4, 4), (4, 5)]:
+            files[1].hranenie(self.assortiment[1])
+            files[1].char.money -= self.cena[1]
+        elif self.board[y][x] == 9:
             active_file = files[0]
+        elif self.board[y][x] == 10:
+            active_file = Menu()
 
 
 class Weapons:
@@ -576,19 +624,15 @@ class Fight(MapPeredvizenie):
         self.enermy_hod = False
         all_sprites = pygame.sprite.Group()
         all_sprites.add(Cursor(all_sprites))
+        self.endgame = pygame.image.load('endgame.png')
 
     def render(self):
         if self.enermy.hp <= 0:
             self.character.next1()
             screen.blit(self.win_image, (0, 0))
-            if bossfight and endgame_Win:
-                # active_file = Win()
-                active_file = Menu()
             return None
         if self.character.hp <= 0:
-            screen.blit(self.win_image, (10, 0))
-            if bossfight and endgame_Fall:
-                active_file = Menu()
+            screen.blit(self.endgame, (0, 0))
             return None
         else:
             screen.blit(self.fight_back, (0, 0))
@@ -671,6 +715,8 @@ class Fight(MapPeredvizenie):
             self.first = True
             cursor_bool = False
             pygame.mouse.set_visible(True)
+        if self.character.hp <= 0:
+            files[0].restart()
         elif self.first and not self.second:
             all_sprites = pygame.sprite.Group()
             pygame.mouse.set_visible(True)
@@ -722,7 +768,7 @@ class Fight(MapPeredvizenie):
     def next(self):
         global cursor_bool, all_sprites
         self.perebros_counter = 3
-        self.enermy_hod = not self.enermy_hodя
+        self.enermy_hod = not self.enermy_hod
         self.character.next1()
         if self.enermy_hod:
             cursor_bool = False
@@ -801,20 +847,6 @@ class Treasure_Chest:
         if 745 >= coords[0] >= 545 and coords[1] >= 500:
             files[1].hranenie(self.treasure)
             active_file = files[0]
-
-
-class BossFight(Fight):
-    def __init__(self):
-        super().__init__(self)
-        pass
-
-    def attack(self, character):
-        for i in range(len(self.abilities)):
-            if bool(eval(f'{i} ' + self.vibor[i])):
-                a = Enemy_dices((i + 1, 1), self.dices_a)
-                character.hp -= self.abilities[i].attack(a.chislo)
-            else:
-                Enemy_dices((6, 1), self.dices_a)
 
 
 pygame.init()
@@ -942,7 +974,6 @@ class AnimatedCharacter(pygame.sprite.Sprite):
     def go(self, coords):
         print(1)
         self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
-        print((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120)))
         if active_file.proverka((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120))):
             print('go!')
             self.vx = 5 * coords[0]
