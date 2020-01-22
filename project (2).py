@@ -203,13 +203,14 @@ class MapPeredvizenie:
             self.board[y][x] = '-'
             Fight(self.char, enemy, self)
         elif self.board[y][x] == 'torgovec':
+            self.board[y][x] = '-'
             Torgovec()
         elif self.board[y][x] == 'exit':
             lvl_number += 2
             if lvl_number == 1:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             if lvl_number == 2:
-                new_map = Load_lvl(f'lvl{lvl_number}_{random.randint(1, 3)}.txt').load_level()
+                new_map = Load_lvl(f'lvl{lvl_number}_{1}.txt').load_level()
             if lvl_number == 3:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
             files[0] = MapPeredvizenie(9, 5, self.char, new_map)
@@ -299,15 +300,16 @@ class Inventory(MapPeredvizenie):
                           Weapons(lambda x: x, 'hammer.png', lambda x: x)],
                          [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
                           Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
-                         [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
+                         [Weapons(lambda x: x, 'sword.png', lambda x: x),
                           Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
         # ,
         #                       [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
         #                       Weapons(lambda x: x, 'hammer.png', lambda x: x)],
         #                     [Weapons(lambda x: x <= 3 , 'dopp.png', lambda x: x * 2),
-        #                      Weapons(lambda x: x, 'sword.png', lambda x: x)],
+        #                      Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3)],
         #                      [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
         #                     Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
+
         self.backpack = [[0, 0, 0, 0],
                          [0, 0, 0, 0],
                          [0, 0, 0, 0],
@@ -497,7 +499,13 @@ class Torgovec(MapPeredvizenie):
         #               y * self.cell_size + self.top + self.cell_size // 2))
 
     def on_click(self, cell_coords):
-        pass  # Я УСТАЛ, ДА ВСЁ ЕЩЁ
+        global active_file
+        print(cell_coords)
+        if not cell_coords:
+            return None
+        x, y = cell_coords
+        if x == 0 and y == 0:
+            active_file = files[0]
 
 
 class Weapons:
@@ -934,6 +942,7 @@ class AnimatedCharacter(pygame.sprite.Sprite):
     def go(self, coords):
         print(1)
         self.purpose = self.rect.x + coords[0] * 120, self.rect.y + coords[1] * 120
+        print((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120)))
         if active_file.proverka((int((self.purpose[1] - 70) / 120), int((self.purpose[0] - 40) / 120))):
             print('go!')
             self.vx = 5 * coords[0]
