@@ -326,7 +326,7 @@ class Inventory(MapPeredvizenie):
                           Weapons(lambda x: x, 'hammer.png', lambda x: x)],
                          [Weapons(lambda x: x % 2 != 0, 'snowflake.png', lambda x: x),
                           Weapons(lambda x: x <= 4, 'battle_axe.png', lambda x: x * 2)],
-                         [Weapons(lambda x: x <= 5, 'cr_sword.png', lambda x: x * 3),
+                         [Weapons(lambda x: x, 'sword.png', lambda x: x),
                           Weapons(lambda x: x <= 3, 'dagger.png', lambda x: x)]]
         # ,
         #                       [Weapons(lambda x: x, 'bump.png', lambda x: x + 1),
@@ -607,7 +607,7 @@ class Fight(MapPeredvizenie):
             abilities = []
             for i in editor[7].split(')'):
                 i = i.split('(')
-            abilities.append(Weapons(eval(f'lambda x: {i[0]}'), i[1], eval(f'lambda x: {i[2]}')))
+                abilities.append(Weapons(eval(f'lambda x: {i[0]}'), i[1], eval(f'lambda x: {i[2]}')))
             self.enermy = Enemy_editor(hp, hp_max, exp, money, dices, abilities, strategy)
             self.enermy_image = load_image(picture2)
         elif bossfight:
