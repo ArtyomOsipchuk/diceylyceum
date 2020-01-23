@@ -1,0 +1,5 @@
+0; 0; -; -; #Tlambda x: x <= 3, dagger.png, lambda x: x; 0; 0; 0; 0
+0; @; #E"fire_dance.png", fire_enemy.png, 8, 8, 2, 1, 3, x(sword.png(x)x(hammer.png(x, >= 6 < 2; 0; 0; 0; exit; 0; 0
+0; 0; -; 3; -; #E"key_dance.png", key_enemy.png, 10, 10, 2, 1, 3, x(bump.png(x + 1)x(hammer.png(x, >= 3 < 2; #Tlambda x: x % 2 != 0, snowflake.png, lambda x: x; 0; 0
+0; 0; 0; 3; 0; 0; 0; 0; 0
++; 8; 7; 6; +; +; 9; 2; +
