@@ -26,18 +26,24 @@ def load_image(name, colorkey=None):
 class Menu:
     def __init__(self):
         self.menu_im = pygame.image.load('Главный экран.jpg')
+        self.avtori = pygame.image.load('maxresdefault.jpg')
         self.width, self.height = 1200, 675
+        self.avtor_true = False
 
     def render(self):
-        screen.blit(self.menu_im, (0, 0))
+        if self.avtor_true:
+            screen.blit(self.avtori, (0, 0))
+        else:
+            screen.blit(self.menu_im, (0, 0))
 
     def on_click(self, cell_coords):
         global active_file, running, files
-        if 890 <= cell_coords[0] <= 1074 and 455 <= cell_coords[1] <= 495:
+        if self.avtor_true:
+            self.avtor_true = False
+        elif 890 <= cell_coords[0] <= 1074 and 455 <= cell_coords[1] <= 495:
             active_file = files[0]
         elif 890 <= cell_coords[0] <= 1074 and 520 <= cell_coords[1] <= 560:
-            # Авторы
-            print('Avtorov poka net')
+            self.avtor_true = True
         elif 890 <= cell_coords[0] <= 1074 and 580 <= cell_coords[1] <= 620:
             global running
             running = False
@@ -102,6 +108,7 @@ class MapPeredvizenie:
         do_sprites()
         end_hod = True
         new_world = True
+        return 0
 
     def render(self):
         screen.blit(self.back, (0, 0))
@@ -164,13 +171,6 @@ class MapPeredvizenie:
                     screen.blit(self.quit_game,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
-                font = pygame.font.Font(None, 25)
-                text = font.render(f"Для ходьбы жмите на клетку около героя", 1, (0, 0, 0))
-                screen.blit(text, (1, 10))
-                pygame.draw.rect(screen, (0, 0, 0),
-                                 (self.left + x * self.cell_size,
-                                  self.top + y * self.cell_size,
-                                  self.cell_size, self.cell_size), 1)
 
     def get_cell(self, mouse_pos):
         if (self.left <= mouse_pos[0] <= self.left + self.cell_size * self.width and
@@ -236,6 +236,9 @@ class MapPeredvizenie:
                 new_map = Load_lvl(f'lvl{lvl_number}_{random.randint(1, 3)}.txt').load_level()
             if lvl_number == 3:
                 new_map = Load_lvl(f'lvl{lvl_number}.txt').load_level()
+            elif lvl_number >= 4:
+                self.restart()
+                return 0
             files[0] = MapPeredvizenie(9, 5, self.char, new_map)
             end_hod = True
             for i in animations:
@@ -398,10 +401,6 @@ class Inventory(MapPeredvizenie):
                     screen.blit(self.quit_game,
                                 (x * self.cell_size + self.left,
                                  y * self.cell_size + self.top))
-                pygame.draw.rect(screen, (0, 0, 0),
-                                 (self.left + x * self.cell_size,
-                                  self.top + y * self.cell_size,
-                                  self.cell_size, self.cell_size), 1)
         for x in range(2):
             for y in range(3):
                 if self.inventar[y][x] != 0:
@@ -536,8 +535,8 @@ class Torgovec(MapPeredvizenie):
         count = -3
         for i in self.assortiment:
             count += 3
-        screen.blit(pygame.transform.scale(i.image, (240, 240)),
-                    (count * self.cell_size + 120, self.cell_size + 70))
+            screen.blit(pygame.transform.scale(i.image, (240, 240)),
+                        (count * self.cell_size + 120, self.cell_size + 70))
 
     def on_click(self, cell_coords):
         global active_file, files
@@ -546,10 +545,10 @@ class Torgovec(MapPeredvizenie):
         y, x = cell_coords
         if cell_coords in [(4, 0), (4, 1), (4, 2)]:
             files[1].hranenie(self.assortiment[0])
-            files[0].char.money -= self.cena[0]
+            files[0].char.money -= int(self.cena[0])
         elif cell_coords in [(4, 3), (4, 4), (4, 5)]:
             files[1].hranenie(self.assortiment[1])
-            files[1].char.money -= self.cena[1]
+            files[1].char.money -= int(self.cena[1])
         elif self.board[y][x] == 9:
             active_file = files[0]
         elif self.board[y][x] == 10:
@@ -614,7 +613,7 @@ class Fight(MapPeredvizenie):
         elif bossfight:
             self.enermy = Enemy_editor(62, '∞', 1000, 10, 2)
             self.enermy_image = load_image(
-                'boss_enemy.png')  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                'boss_enemy.png')
         self.board = [[0, 0, 0, 0, 0, 13, 2, 0, 0],
                       [0, 0, 0, 0, 0, 3, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -780,8 +779,9 @@ class Fight(MapPeredvizenie):
             cursor_bool = True
 
     def dorabotat(self):
-        global endgame_Fall
+        global endgame_Fall, files
         endgame_False = True
+        files[0].char.hp = 0
 
 
 class Enemy_editor(Fight):
@@ -988,7 +988,11 @@ def do_sprites():
         for x in range(len(files[0].board[0])):
             if type(files[0].board[y][x]) == int:
                 pass
-            elif files[0].board[y][x][:2] == '#E' or files[0].board[y][x] == '#Bossfight':
+            elif files[0].board[y][x][:2] == '#E':
+                animations.append(
+                    AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x,
+                                70 + 120 * y))
+            elif files[0].board[y][x][:2] == '#B':
                 animations.append(
                     AnimatedMap(load_image(files[0].board[y][x][2:].split(',')[0][1:-1]), 2, 1, 40 + 120 * x,
                                 70 + 120 * y))
