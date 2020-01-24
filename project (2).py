@@ -807,16 +807,15 @@ class Enemy_editor(Fight):
 
     def attack(self, character):
         if not bossfight:
-            print('not boss(')
-            for i in range(0, len(self.abilities), 2):
-                a = Enemy_dices((i + 1, 1), self.dices_a)
-                if bool(eval(str(a.chislo) + self.vibor[i])):
-                    a.kill()
+            for i in range(0, len(self.abilities)):
+                ch = random.randint(1, 6)
+                print(str(ch) + ' ' + self.vibor[i])
+                if bool(eval(str(ch) + self.vibor[i])):
+                    a = Enemy_dices((i + 1, 1), self.dices_a, ch)
                     character.hp -= self.abilities[i].attack(a.chislo)
                 else:
-                    Enemy_dices((6, 1), self.dices_a)
+                    Enemy_dices((6, 1), self.dices_a, ch)
         else:
-            print('boss!')
             for i in range(4):
                 a = random.randint(1, 6)
                 if a > 3:
@@ -1098,5 +1097,5 @@ while running:
         active_file.enermy.dices_a.draw(screen)
         active_file.enermy.dices_a.update()
     pygame.display.flip()
-    clock.tick(10)
+    clock.tick(5)
 pygame.quit()
