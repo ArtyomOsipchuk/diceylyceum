@@ -631,6 +631,7 @@ class Fight(MapPeredvizenie):
             screen.blit(self.win_image, (0, 0))
             return None
         if self.character.hp <= 0:
+            self.enermy.dices_a = pygame.sprite.Group()
             screen.blit(self.endgame, (0, 0))
             return None
         else:
@@ -1097,5 +1098,5 @@ while running:
         active_file.enermy.dices_a.draw(screen)
         active_file.enermy.dices_a.update()
     pygame.display.flip()
-    clock.tick(5)
+    clock.tick(10)
 pygame.quit()
